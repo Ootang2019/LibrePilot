@@ -37,7 +37,7 @@
 #define MK_I2C_ADDR     (0x50 >> 1)
 #define ASTEC4_I2C_ADDR 0x02
 
-bool PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed);
+int32_t PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed);
 
 uint8_t base_address = MK_I2C_ADDR;
 uint32_t valid_motors = 0;
@@ -97,7 +97,7 @@ bool PIOS_I2C_ESC_SetSpeed(uint8_t speed[4])
     return PIOS_I2C_Transfer(PIOS_I2C_ESC_ADAPTER, txn_list, NELEMENTS(txn_list));
 }
 
-bool PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed)
+int32_t PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed)
 {
     //static uint8_t speeds[8] = { 0 };
 
@@ -119,7 +119,7 @@ bool PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed)
         }
     };
 
-    return PIOS_I2C_Transfer(PIOS_I2C_ESC_ADAPTER, txn_list, NELEMENTS(txn_list))==0;
+    return PIOS_I2C_Transfer(PIOS_I2C_ESC_ADAPTER, txn_list, NELEMENTS(txn_list));
 }
 
 bool PIOS_SetAstec4Address(uint8_t new_address)

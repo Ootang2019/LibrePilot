@@ -38,7 +38,7 @@
 
 bool PIOS_I2C_ESC_Config();
 bool PIOS_I2C_ESC_SetSpeed(uint8_t speed[4]);
-bool PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed);
+int32_t PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed);
 bool PIOS_SetAstec4Speed(uint8_t motornum, uint8_t speed);
 
 #endif /* PIOS_I2C_ESC_H */

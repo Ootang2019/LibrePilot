@@ -31,7 +31,6 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-
 #include <openpilot.h>
 
 #include "accessorydesired.h"
@@ -59,6 +58,7 @@
 static int8_t counter;
 // Counter 0xAC700001 total Actuator body execution time(excluding queue waits etc).
 #endif
+int32_t globaldebug=0;
 
 // Private constants
 #define MAX_QUEUE_SIZE                   2
@@ -539,7 +539,14 @@ static void actuatorTask(__attribute__((unused)) void *parameters)
         bool success = true;
 
         for (int n = 0; n < ACTUATORCOMMAND_CHANNEL_NUMELEM; ++n) {
-            success &= set_channel(n, command.Channel[n]);
+	    bool debug = set_channel(n, command.Channel[n]);
+	    if (!debug) {
+		command.Channel[n]=(uint16_t)globaldebug;
+		globaldebug=0;
+	    }
+success &= debug;
+
+            //success &= set_channel(n, command.Channel[n]);
         }
 
         PIOS_Servo_Update();
@@ -960,8 +967,12 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value)
 
 #if defined(PIOS_INCLUDE_I2C_ESC)
     case ACTUATORSETTINGS_CHANNELTYPE_MK:
-        return PIOS_SetMKSpeed(actuatorSettings.ChannelAddr[mixer_channel], (uint8_t)((uint32_t)(255*(((uint32_t)value)-1000)/1000)));
-
+	{
+		int32_t debug=PIOS_SetMKSpeed(actuatorSettings.ChannelAddr[mixer_channel], (uint8_t)((uint32_t)(255*(((uint32_t)value)-1000)/1000)));
+		if (debug==0) return true;
+		globaldebug=debug;
+		return false;
+	}
     case ACTUATORSETTINGS_CHANNELTYPE_ASTEC4:
         return PIOS_SetAstec4Speed(actuatorSettings.ChannelAddr[mixer_channel], value);
 

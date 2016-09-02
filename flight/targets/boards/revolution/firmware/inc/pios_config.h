@@ -119,7 +119,7 @@
 #define PIOS_INCLUDE_LED
 #define PIOS_INCLUDE_IAP
 #define PIOS_INCLUDE_SERVO
-/* #define PIOS_INCLUDE_I2C_ESC */
+#define PIOS_INCLUDE_I2C_ESC
 /* #define PIOS_INCLUDE_OVERO */
 /* #define PIOS_OVERO_SPI */
 /* #define PIOS_INCLUDE_SDCARD */

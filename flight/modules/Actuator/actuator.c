@@ -960,10 +960,10 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value)
 
 #if defined(PIOS_INCLUDE_I2C_ESC)
     case ACTUATORSETTINGS_CHANNELTYPE_MK:
-        return PIOS_SetMKSpeed(actuatorSettings->ChannelAddr[mixer_channel], value);
+        return PIOS_SetMKSpeed(actuatorSettings.ChannelAddr[mixer_channel], (uint8_t)((uint32_t)(255*(((uint32_t)value)-1000)/1000)));
 
     case ACTUATORSETTINGS_CHANNELTYPE_ASTEC4:
-        return PIOS_SetAstec4Speed(actuatorSettings->ChannelAddr[mixer_channel], value);
+        return PIOS_SetAstec4Speed(actuatorSettings.ChannelAddr[mixer_channel], value);
 
 #endif
     default:

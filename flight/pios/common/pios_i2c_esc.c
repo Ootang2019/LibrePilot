@@ -34,8 +34,9 @@
 #ifdef PIOS_INCLUDE_I2C_ESC
 
 /* Known i2c ESC addresses */
-#define MK_I2C_ADDR     (0x50 >> 1)
+#define MK_I2C_ADDR     (0x52 >> 1)
 #define ASTEC4_I2C_ADDR 0x02
+#define MK_MAX_ENGINES 12
 
 int32_t PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed);
 
@@ -45,7 +46,7 @@ bool PIOS_I2C_ESC_Config()
 {
     base_address = MK_I2C_ADDR;
     valid_motors = 0;
-    for (uint8_t i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < MK_MAX_ENGINES; i++) {
         if (PIOS_SetMKSpeed(i, 0)) {
             valid_motors |= (1 << i);
         }
@@ -101,7 +102,7 @@ int32_t PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed)
 {
     //static uint8_t speeds[8] = { 0 };
 
-    if (motornum >= 8) {
+    if (motornum >= MK_MAX_ENGINES) {
         return false;
     }
 

@@ -154,7 +154,7 @@ static const struct pios_hmc5x83_cfg pios_hmc5x83_external_cfg = {
 #ifdef PIOS_HMC5X83_HAS_GPIOS
     .exti_cfg  = NULL,
 #endif
-    .M_ODR     = PIOS_HMC5x83_ODR_75, // if you change this for auxmag, change AUX_MAG_SKIP in sensors.c
+    .M_ODR     = PIOS_HMC5x83_ODR_30, // if you change this for auxmag, change AUX_MAG_SKIP in sensors.c
     .Meas_Conf = PIOS_HMC5x83_MEASCONF_NORMAL,
     .Gain   = PIOS_HMC5x83_GAIN_1_9,
     .Mode   = PIOS_HMC5x83_MODE_CONTINUOUS,

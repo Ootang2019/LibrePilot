@@ -75,7 +75,7 @@
 #define PIOS_LSM303D_MAG_SCALE_12GA     0x60
 
 
-#define PIOS_LSM303D_ADR_MAG            0x08
+#define PIOS_LSM303D_ADR_MAG            0x88
 #define PIOS_LSM303D_CTRL0              0x1F
 #define PIOS_LSM303D_CTRL1              0x20
 #define PIOS_LSM303D_CTRL2              0x21

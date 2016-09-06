@@ -56,7 +56,7 @@ static const struct pios_gpio pios_leds[] = {
         },
         .active_low         = true
     },
-    [PIOS_LED_TEST] =        {
+    [PIOS_LED_TEST] =      {
         .pin                =             {
             .gpio = GPIOA,
             .init =             {
@@ -153,7 +153,7 @@ static const struct pios_gpio pios_leds_v2[] = {
         },
         .active_low         = true
     },
-    [PIOS_LED_TEST] =        {
+    [PIOS_LED_TEST] =      {
         .pin                =             {
             .gpio = GPIOA,
             .init =             {

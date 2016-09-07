@@ -38,6 +38,12 @@
 /* Global Variables */
 
 /* Local Types */
+typedef enum {
+    PIOS_HMC5x83_UNKNOWN,
+    PIOS_HMC5x83_INVALID,
+    PIOS_HMC5x83_HMC5x83,
+    PIOS_HMC5x83_LSM303D
+} pios_hmc5x83_type_t;
 
 typedef struct {
     uint32_t magic;
@@ -51,9 +57,15 @@ typedef struct {
     int16_t  magData[3];
     bool     hw_error;
     uint32_t lastConfigTime;
+    pios_hmc5x83_type_t type;
 } pios_hmc5x83_dev_data_t;
 
 static int32_t PIOS_HMC5x83_Config(pios_hmc5x83_dev_data_t *dev);
+static int32_t PIOS_HMC5x83_Config_5x83(pios_hmc5x83_dev_data_t *dev);
+static int32_t PIOS_HMC5x83_Config_303(pios_hmc5x83_dev_data_t *dev);
+static pios_hmc5x83_type_t PIOS_HMC5x83_Identify(pios_hmc5x83_dev_data_t *dev);
+static int32_t PIOS_HMC5x83_ReadMag_5x83(pios_hmc5x83_dev_data_t *dev, int16_t out[3]);
+static int32_t PIOS_HMC5x83_ReadMag_303(pios_hmc5x83_dev_data_t *dev, int16_t out[3]);
 
 // sensor driver interface
 bool PIOS_HMC5x83_driver_Test(uintptr_t context);
@@ -110,6 +122,7 @@ pios_hmc5x83_dev_t PIOS_HMC5x83_Init(const struct pios_hmc5x83_cfg *cfg, uint32_
     dev->cfg       = cfg; // store config before enabling interrupt
     dev->port_id   = port_id;
     dev->slave_num = slave_num;
+    dev->type      = PIOS_HMC5x83_UNKNOWN;
 
 #ifdef PIOS_HMC5X83_HAS_GPIOS
     if (cfg->exti_cfg) {
@@ -241,6 +254,23 @@ void PIOS_HMC5x83_Register(pios_hmc5x83_dev_t handler, PIOS_SENSORS_TYPE sensort
  */
 static int32_t PIOS_HMC5x83_Config(pios_hmc5x83_dev_data_t *dev)
 {
+    switch (PIOS_HMC5x83_Identify(dev)) {
+    case PIOS_HMC5x83_HMC5x83:
+        return PIOS_HMC5x83_Config_5x83(dev);
+
+        break;
+    case PIOS_HMC5x83_LSM303D:
+        return PIOS_HMC5x83_Config_303(dev);
+
+        break;
+    default:
+        return -1;
+
+        break;
+    }
+}
+static int32_t PIOS_HMC5x83_Config_5x83(pios_hmc5x83_dev_data_t *dev)
+{
     uint8_t CTRLA = 0x00;
     uint8_t MODE  = 0x00;
 
@@ -267,6 +297,37 @@ static int32_t PIOS_HMC5x83_Config(pios_hmc5x83_dev_data_t *dev)
 
     // Mode register
     if (cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_HMC5x83_MODE_REG, MODE) != 0) {
+        return -1;
+    }
+
+#ifdef PIOS_INCLUDE_WDG
+    // give HMC5x83 on I2C some extra time
+    PIOS_WDG_Clear();
+#endif /* PIOS_INCLUDE_WDG */
+
+    if (PIOS_HMC5x83_Test((pios_hmc5x83_dev_t)dev) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int32_t PIOS_HMC5x83_Config_303(pios_hmc5x83_dev_data_t *dev)
+{
+    dev->lastConfigTime = PIOS_DELAY_GetRaw();
+
+    const struct pios_hmc5x83_cfg *cfg = dev->cfg;
+
+    uint8_t result = 0;
+    result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL0, 0);
+    result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL1, 0);
+    result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL2, 0);
+    result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL3, 0);
+    result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL4, 0);
+    result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL5, PIOS_LSM303D_ODR_100);
+    result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL6, PIOS_LSM303D_MAG_SCALE_8GA);
+    result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL7, 0);
+    if (result != 0) {
         return -1;
     }
 
@@ -338,12 +399,36 @@ int32_t PIOS_HMC5x83_ReadMag(pios_hmc5x83_dev_t handler, int16_t out[3])
 {
     pios_hmc5x83_dev_data_t *dev = dev_validate(handler);
 
+    switch (PIOS_HMC5x83_Identify(dev)) {
+    case PIOS_HMC5x83_HMC5x83:
+        return PIOS_HMC5x83_ReadMag_5x83(dev, out);
+
+        break;
+    case PIOS_HMC5x83_LSM303D:
+        return PIOS_HMC5x83_ReadMag_303(dev, out);
+
+        break;
+    default:
+        return -1;
+
+        break;
+    }
+}
+
+/**
+ * @brief Read current X, Z, Y values (in that order)
+ * \param[in] dev device handler
+ * \param[out] int16_t array of size 3 to store X, Z, and Y magnetometer readings
+ * \return 0 for success or -1 for failure
+ */
+static int32_t PIOS_HMC5x83_ReadMag_5x83(pios_hmc5x83_dev_data_t *dev, int16_t out[3])
+{
     dev->data_ready = false;
     uint8_t buffer[6];
     int16_t temp[3];
     int32_t sensitivity;
 
-    if (dev->cfg->Driver->Read(handler, PIOS_HMC5x83_DATAOUT_XMSB_REG, buffer, 6) != 0) {
+    if (dev->cfg->Driver->Read((pios_hmc5x83_dev_t)dev, PIOS_HMC5x83_DATAOUT_XMSB_REG, buffer, 6) != 0) {
         return -1;
     }
 
@@ -389,11 +474,37 @@ int32_t PIOS_HMC5x83_ReadMag(pios_hmc5x83_dev_t handler, int16_t out[3])
     // Once idle, we have write to it to turn it on before we can read from it again.
     // To conserve current between measurements, the device is placed in a state similar to idle mode, but the
     // Mode Register is not changed to Idle Mode.  That is, MD[n] bits are unchanged.
-    dev->cfg->Driver->Write(handler, PIOS_HMC5x83_MODE_REG, PIOS_HMC5x83_MODE_CONTINUOUS);
+    dev->cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_HMC5x83_MODE_REG, PIOS_HMC5x83_MODE_CONTINUOUS);
 
     return 0;
 }
 
+/**
+ * @brief Read current X, Z, Y values (in that order)
+ * \param[in] dev device handler
+ * \param[out] int16_t array of size 3 to store X, Z, and Y magnetometer readings
+ * \return 0 for success or -1 for failure
+ */
+static int32_t PIOS_HMC5x83_ReadMag_303(pios_hmc5x83_dev_data_t *dev, int16_t out[3])
+{
+    dev->data_ready = false;
+    uint8_t buffer[6];
+    int16_t temp[3];
+
+    if (dev->cfg->Driver->Read((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_ADR_MAG, buffer, 6) != 0) {
+        return -1;
+    }
+
+    for (int i = 0; i < 3; i++) {
+        int16_t v = ((int16_t)((uint16_t)buffer[2 * i + 1] << 8)
+                     + buffer[2 * i]);
+        temp[i] = v;
+    }
+
+    PIOS_HMC5x83_Orient(dev->cfg->Orientation, temp, out);
+
+    return 0;
+}
 
 /**
  * @brief Read the identification bytes from the HMC5x83 sensor
@@ -406,6 +517,20 @@ uint8_t PIOS_HMC5x83_ReadID(pios_hmc5x83_dev_t handler, uint8_t out[4])
     uint8_t retval = dev->cfg->Driver->Read(handler, PIOS_HMC5x83_DATAOUT_IDA_REG, out, 3);
 
     out[3] = '\0';
+    return retval;
+}
+
+/**
+ * @brief Read the identification bytes from the LSM303D sensor
+ * \param[out] uint8_t array of size 2 to store LSM303D ID.
+ * \return 0 if successful, -1 if not
+ */
+uint8_t PIOS_HMC5x83_ReadLSM303ID(pios_hmc5x83_dev_t handler, uint8_t out[2])
+{
+    pios_hmc5x83_dev_data_t *dev = dev_validate(handler);
+    uint8_t retval = dev->cfg->Driver->Read(handler, PIOS_HMC5x83_DATAOUT_IDF_REG, out, 1);
+
+    out[1] = '\0';
     return retval;
 }
 
@@ -434,6 +559,28 @@ bool PIOS_HMC5x83_NewDataAvailable(__attribute__((unused)) pios_hmc5x83_dev_t ha
 }
 
 /**
+ * @brief Run chip identification. Several chips (HMC5xxx, LSM303xxx, ...) are very similar
+ * \return chip type
+ */
+static pios_hmc5x83_type_t PIOS_HMC5x83_Identify(pios_hmc5x83_dev_data_t *dev)
+{
+    if (dev->type == PIOS_HMC5x83_UNKNOWN) {
+        char id[4];
+        PIOS_HMC5x83_ReadID((pios_hmc5x83_dev_t)dev, (uint8_t *)id);
+        if ((id[0] != 'H') || (id[1] != '4') || (id[2] != '3')) { // Expect H43
+            PIOS_HMC5x83_ReadLSM303ID((pios_hmc5x83_dev_t)dev, (uint8_t *)id);
+            if (id[0] != 0x49) {
+                dev->type = PIOS_HMC5x83_UNKNOWN;
+            } else {
+                dev->type = PIOS_HMC5x83_LSM303D;
+            }
+        } else {
+            dev->type = PIOS_HMC5x83_HMC5x83;
+        }
+    }
+    return dev->type;
+}
+/**
  * @brief Run self-test operation.  Do not call this during operational use!!
  * \return 0 if success, -1 if test failed
  */
@@ -455,11 +602,13 @@ int32_t PIOS_HMC5x83_Test(pios_hmc5x83_dev_t handler)
 #endif /* PIOS_INCLUDE_WDG */
 
     /* Verify that ID matches (HMC5x83 ID is null-terminated ASCII string "H43") */
-    char id[4];
-
-    PIOS_HMC5x83_ReadID(handler, (uint8_t *)id);
-    if ((id[0] != 'H') || (id[1] != '4') || (id[2] != '3')) { // Expect H43
+    if (PIOS_HMC5x83_Identify(dev) == PIOS_HMC5x83_UNKNOWN) {
         return -1;
+    }
+
+    /* TODO we don't self test the 303d yet beyond chip identification as it differs drastically TODO*/
+    if (PIOS_HMC5x83_Identify(dev) == PIOS_HMC5x83_LSM303D) {
+        return 0;
     }
 
     /* Backup existing configuration */

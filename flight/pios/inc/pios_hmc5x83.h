@@ -52,6 +52,7 @@
 #define PIOS_HMC5x83_DATAOUT_IDA_REG    0x0A
 #define PIOS_HMC5x83_DATAOUT_IDB_REG    0x0B
 #define PIOS_HMC5x83_DATAOUT_IDC_REG    0x0C
+#define PIOS_HMC5x83_DATAOUT_IDF_REG    0x0F
 
 /* Output Data Rate */
 #define PIOS_HMC5x83_ODR_0_75           0x00
@@ -61,6 +62,28 @@
 #define PIOS_HMC5x83_ODR_15             0x10
 #define PIOS_HMC5x83_ODR_30             0x14
 #define PIOS_HMC5x83_ODR_75             0x18
+
+#define PIOS_LSM303D_ODR_3              0x00
+#define PIOS_LSM303D_ODR_6              0x04
+#define PIOS_LSM303D_ODR_12             0x08
+#define PIOS_LSM303D_ODR_25             0x0c
+#define PIOS_LSM303D_ODR_50             0x10
+#define PIOS_LSM303D_ODR_100            0x14
+#define PIOS_LSM303D_MAG_SCALE_2GA      0x00
+#define PIOS_LSM303D_MAG_SCALE_4GA      0x20
+#define PIOS_LSM303D_MAG_SCALE_8GA      0x40
+#define PIOS_LSM303D_MAG_SCALE_12GA     0x60
+
+
+#define PIOS_LSM303D_ADR_MAG            0x88
+#define PIOS_LSM303D_CTRL0              0x1F
+#define PIOS_LSM303D_CTRL1              0x20
+#define PIOS_LSM303D_CTRL2              0x21
+#define PIOS_LSM303D_CTRL3              0x22
+#define PIOS_LSM303D_CTRL4              0x23
+#define PIOS_LSM303D_CTRL5              0x24
+#define PIOS_LSM303D_CTRL6              0x25
+#define PIOS_LSM303D_CTRL7              0x26
 
 /* Measure configuration */
 #define PIOS_HMC5x83_MEASCONF_NORMAL    0x00

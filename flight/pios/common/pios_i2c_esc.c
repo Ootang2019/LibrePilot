@@ -34,18 +34,19 @@
 #ifdef PIOS_INCLUDE_I2C_ESC
 
 /* Known i2c ESC addresses */
-#define MK_I2C_ADDR     0x29
+#define MK_I2C_ADDR     (0x52 >> 1)
 #define ASTEC4_I2C_ADDR 0x02
+#define MK_MAX_ENGINES  12
 
-bool PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed);
+int32_t PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed);
 
-uint8_t base_address = MK_I2C_ADDR;
-uint8_t valid_motors = 0;
+uint8_t base_address  = MK_I2C_ADDR;
+uint32_t valid_motors = 0;
 bool PIOS_I2C_ESC_Config()
 {
     base_address = MK_I2C_ADDR;
     valid_motors = 0;
-    for (uint8_t i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < MK_MAX_ENGINES; i++) {
         if (PIOS_SetMKSpeed(i, 0)) {
             valid_motors |= (1 << i);
         }
@@ -97,17 +98,17 @@ bool PIOS_I2C_ESC_SetSpeed(uint8_t speed[4])
     return PIOS_I2C_Transfer(PIOS_I2C_ESC_ADAPTER, txn_list, NELEMENTS(txn_list));
 }
 
-bool PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed)
+int32_t PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed)
 {
-    static uint8_t speeds[4] = { 0, 0, 0, 0 };
+    // static uint8_t speeds[8] = { 0 };
 
-    if (motornum >= 4) {
+    if (motornum >= MK_MAX_ENGINES) {
         return false;
     }
 
-    if (speeds[motornum] == speed) {
-        return true;
-    }
+    // if (speeds[motornum] == speed) {
+    // return true;
+    // }
 
     const struct pios_i2c_txn txn_list[] = {
         {
@@ -124,7 +125,7 @@ bool PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed)
 
 bool PIOS_SetAstec4Address(uint8_t new_address)
 {
-    if ((new_address < 0) || (new_address > 4)) {
+    if ((new_address > 4)) {
         return false;
     }
 
@@ -147,7 +148,7 @@ bool PIOS_SetAstec4Speed(uint8_t motornum, uint8_t speed)
 {
     static uint8_t speeds[5] = { 0, 0, 0, 0 };
 
-    if ((motornum < 0) || (motornum >= 4)) {
+    if ((motornum >= 4)) {
         return false;
     }
 

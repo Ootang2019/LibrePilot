@@ -76,6 +76,7 @@
 // ------------------------
 #define PIOS_LED_HEARTBEAT 0
 #define PIOS_LED_ALARM     1
+#define PIOS_LED_TEST      2
 #ifdef PIOS_RFM22B_DEBUG_ON_TELEM
 #define PIOS_LED_D1        2
 #define PIOS_LED_D2        3
@@ -127,6 +128,7 @@ extern uint32_t pios_i2c_flexiport_adapter_id;
 #define PIOS_I2C_FLEXI_ADAPTER    (pios_i2c_flexiport_adapter_id)
 #define PIOS_I2C_ETASV3_ADAPTER   (PIOS_I2C_FLEXI_ADAPTER)
 #define PIOS_I2C_MS4525DO_ADAPTER (PIOS_I2C_FLEXI_ADAPTER)
+#define PIOS_I2C_ESC_ADAPTER      (PIOS_I2C_FLEXI_ADAPTER)
 
 // -------------------------
 // PIOS_USART

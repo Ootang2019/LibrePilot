@@ -76,24 +76,6 @@
 
 
 
-// message format
-
-struct ros_bridge_message {
-    
-
-
-
-}
-
-typedef 
-
-
-
-
-
-
-
-
 
 
 

@@ -58,7 +58,6 @@
 static int8_t counter;
 // Counter 0xAC700001 total Actuator body execution time(excluding queue waits etc).
 #endif
-int32_t globaldebug = 0;
 
 // Private constants
 #define MAX_QUEUE_SIZE                   2
@@ -106,7 +105,7 @@ static int16_t scaleMotor(float value, int16_t max, int16_t min, int16_t neutral
 static void setFailsafe();
 static float MixerCurveFullRangeProportional(const float input, const float *curve, uint8_t elements, bool multirotor);
 static float MixerCurveFullRangeAbsolute(const float input, const float *curve, uint8_t elements, bool multirotor);
-static bool set_channel(uint8_t mixer_channel, uint16_t value);
+static int32_t set_channel(uint8_t mixer_channel, uint16_t value);
 static void actuator_update_rate_if_changed(bool force_update);
 static void MixerSettingsUpdatedCb(UAVObjEvent *ev);
 static void ActuatorSettingsUpdatedCb(UAVObjEvent *ev);
@@ -539,14 +538,11 @@ static void actuatorTask(__attribute__((unused)) void *parameters)
         bool success = true;
 
         for (int n = 0; n < ACTUATORCOMMAND_CHANNEL_NUMELEM; ++n) {
-            bool debug = set_channel(n, command.Channel[n]);
-            if (!debug) {
-                command.Channel[n] = (uint16_t)globaldebug;
-                globaldebug = 0;
+            int32_t result = set_channel(n, command.Channel[n]);
+            if (result < 0) {
+                command.Channel[n] = result;
+                success = false;
             }
-            success &= debug;
-
-            // success &= set_channel(n, command.Channel[n]);
         }
 
         PIOS_Servo_Update();
@@ -919,28 +915,28 @@ static inline bool buzzerState(buzzertype type)
 
 
 #if defined(ARCH_POSIX) || defined(ARCH_WIN32)
-static bool set_channel(uint8_t mixer_channel, uint16_t value)
+static int32_t set_channel(uint8_t mixer_channel, uint16_t value)
 {
-    return true;
+    return 0;
 }
 #else
-static bool set_channel(uint8_t mixer_channel, uint16_t value)
+static int32_t set_channel(uint8_t mixer_channel, uint16_t value)
 {
     switch (actuatorSettings.ChannelType[mixer_channel]) {
     case ACTUATORSETTINGS_CHANNELTYPE_PWMALARMBUZZER:
         PIOS_Servo_Set(actuatorSettings.ChannelAddr[mixer_channel],
                        buzzerState(BUZZ_BUZZER) ? actuatorSettings.ChannelMax[mixer_channel] : actuatorSettings.ChannelMin[mixer_channel]);
-        return true;
+        return 0;
 
     case ACTUATORSETTINGS_CHANNELTYPE_ARMINGLED:
         PIOS_Servo_Set(actuatorSettings.ChannelAddr[mixer_channel],
                        buzzerState(BUZZ_ARMING) ? actuatorSettings.ChannelMax[mixer_channel] : actuatorSettings.ChannelMin[mixer_channel]);
-        return true;
+        return 0;
 
     case ACTUATORSETTINGS_CHANNELTYPE_INFOLED:
         PIOS_Servo_Set(actuatorSettings.ChannelAddr[mixer_channel],
                        buzzerState(BUZZ_INFO) ? actuatorSettings.ChannelMax[mixer_channel] : actuatorSettings.ChannelMin[mixer_channel]);
-        return true;
+        return 0;
 
     case ACTUATORSETTINGS_CHANNELTYPE_PWM:
     {
@@ -962,28 +958,20 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value)
             PIOS_Servo_Set(actuatorSettings.ChannelAddr[mixer_channel], value);
             break;
         }
-        return true;
+        return 0;
     }
 
 #if defined(PIOS_INCLUDE_I2C_ESC)
     case ACTUATORSETTINGS_CHANNELTYPE_MK:
-    {
-        int32_t debug = PIOS_SetMKSpeed(actuatorSettings.ChannelAddr[mixer_channel], (uint8_t)((uint32_t)(255 * (((uint32_t)value) - 1000) / 1000)));
-        if (debug == 0) {
-            return true;
-        }
-        globaldebug = debug;
-        return false;
-    }
+        return PIOS_SetMKSpeed(actuatorSettings.ChannelAddr[mixer_channel], (uint8_t)((uint32_t)(255 * (((uint32_t)value) - 1000) / 1000)));
+
     case ACTUATORSETTINGS_CHANNELTYPE_ASTEC4:
         return PIOS_SetAstec4Speed(actuatorSettings.ChannelAddr[mixer_channel], value);
 
 #endif
     default:
-        return false;
+        return -999;
     }
-
-    return false;
 }
 #endif /* if defined(ARCH_POSIX) || defined(ARCH_WIN32) */
 

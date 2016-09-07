@@ -326,7 +326,7 @@ static int32_t PIOS_HMC5x83_Config_303(pios_hmc5x83_dev_data_t *dev)
     result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL4, 0);
     result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL5, PIOS_LSM303D_ODR_100);
     result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL6, PIOS_LSM303D_MAG_SCALE_8GA);
-    result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL6, 0);
+    result |= cfg->Driver->Write((pios_hmc5x83_dev_t)dev, PIOS_LSM303D_CTRL7, 0);
     if (result != 0) {
         return -1;
     }
@@ -467,7 +467,6 @@ static int32_t PIOS_HMC5x83_ReadMag_5x83(pios_hmc5x83_dev_data_t *dev, int16_t o
     }
 
     PIOS_HMC5x83_Orient(dev->cfg->Orientation, temp, out);
-    out[2] = -1;
 
     // "This should not be necessary but for some reason it is coming out of continuous conversion mode"
     //
@@ -488,7 +487,6 @@ static int32_t PIOS_HMC5x83_ReadMag_5x83(pios_hmc5x83_dev_data_t *dev, int16_t o
  */
 static int32_t PIOS_HMC5x83_ReadMag_303(pios_hmc5x83_dev_data_t *dev, int16_t out[3])
 {
-    static uint16_t cycle=0;
     dev->data_ready = false;
     uint8_t buffer[6];
     int16_t temp[3];
@@ -504,7 +502,6 @@ static int32_t PIOS_HMC5x83_ReadMag_303(pios_hmc5x83_dev_data_t *dev, int16_t ou
     }
 
     PIOS_HMC5x83_Orient(dev->cfg->Orientation, temp, out);
-    out[2] = cycle++;
 
     return 0;
 }

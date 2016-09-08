@@ -326,8 +326,8 @@ static void uavoROSBridgeTxTask(void)
     }
     // nothing scheduled, do a ping in 10 secods time
 
-ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
-    PIOS_CALLBACKSCHEDULER_Schedule(callbackHandle,10000,CALLBACK_UPDATEMODE_SOONER);
+    ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
+    PIOS_CALLBACKSCHEDULER_Schedule(callbackHandle, 10000, CALLBACK_UPDATEMODE_SOONER);
 }
 
 

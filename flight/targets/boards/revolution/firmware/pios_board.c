@@ -259,6 +259,10 @@ uint32_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
 
 #define PIOS_COM_MSP_TX_BUF_LEN          128
 #define PIOS_COM_MSP_RX_BUF_LEN          64
+
+#define PIOS_COM_ROS_TX_BUF_LEN          512
+#define PIOS_COM_ROS_RX_BUF_LEN          512
+
 #define PIOS_COM_MAVLINK_TX_BUF_LEN      128
 
 #if defined(PIOS_INCLUDE_DEBUG_CONSOLE)
@@ -275,6 +279,7 @@ uint32_t pios_com_overo_id     = 0;
 uint32_t pios_com_hkosd_id     = 0;
 uint32_t pios_com_vcp_id       = 0;
 uint32_t pios_com_msp_id       = 0;
+uint32_t pios_com_ros_id       = 0;
 uint32_t pios_com_mavlink_id   = 0;
 
 #if defined(PIOS_INCLUDE_RFM22B)
@@ -733,11 +738,11 @@ void PIOS_Board_Init(void)
     case HWSETTINGS_USB_VCPPORT_ROSBRIDGE:
 #if defined(PIOS_INCLUDE_COM)
         {
-            uint8_t *rx_buffer = (uint8_t *)pios_malloc(PIOS_COM_BRIDGE_RX_BUF_LEN);
-            uint8_t *tx_buffer = (uint8_t *)pios_malloc(PIOS_COM_BRIDGE_TX_BUF_LEN);
+            uint8_t *rx_buffer = (uint8_t *)pios_malloc(PIOS_COM_ROS_RX_BUF_LEN);
+            uint8_t *tx_buffer = (uint8_t *)pios_malloc(PIOS_COM_ROS_TX_BUF_LEN);
             PIOS_Assert(rx_buffer);
             PIOS_Assert(tx_buffer);
-            if (PIOS_COM_Init(&pios_com_vcp_id, &pios_usb_cdc_com_driver, pios_usb_cdc_id,
+            if (PIOS_COM_Init(&pios_com_ros_id, &pios_usb_cdc_com_driver, pios_usb_cdc_id,
                               rx_buffer, PIOS_COM_BRIDGE_RX_BUF_LEN,
                               tx_buffer, PIOS_COM_BRIDGE_TX_BUF_LEN)) {
                 PIOS_Assert(0);

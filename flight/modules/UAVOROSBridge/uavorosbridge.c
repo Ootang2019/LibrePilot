@@ -34,37 +34,38 @@
  */
 
 #include "openpilot.h"
-/*
-#include "receiverstatus.h"
 #include "hwsettings.h"
-#include "flightmodesettings.h"
-#include "flightbatterysettings.h"
-#include "flightbatterystate.h"
-#include "gpspositionsensor.h"
-#include "manualcontrolcommand.h"
-#include "manualcontrolsettings.h"
-#include "oplinkstatus.h"
-#include "accessorydesired.h"
-#include "attitudestate.h"
-#include "airspeedstate.h"
-#include "actuatorsettings.h"
-#include "actuatordesired.h"
-#include "flightstatus.h"
-#include "systemstats.h"
-#include "systemalarms.h"
-#include "takeofflocation.h"
-#include "homelocation.h"
-#include "positionstate.h"
-#include "velocitystate.h"
-#include "stabilizationdesired.h"
 #include "taskinfo.h"
-#include "stabilizationsettings.h"
-#include "stabilizationbank.h"
-#include "stabilizationsettingsbank1.h"
-#include "stabilizationsettingsbank2.h"
-#include "stabilizationsettingsbank3.h"
-#include "magstate.h"
-*/
+#include "callbackinfo.h"
+/*
+   #include "receiverstatus.h"
+   #include "flightmodesettings.h"
+   #include "flightbatterysettings.h"
+   #include "flightbatterystate.h"
+   #include "gpspositionsensor.h"
+   #include "manualcontrolcommand.h"
+   #include "manualcontrolsettings.h"
+   #include "oplinkstatus.h"
+   #include "accessorydesired.h"
+   #include "attitudestate.h"
+   #include "airspeedstate.h"
+   #include "actuatorsettings.h"
+   #include "actuatordesired.h"
+   #include "flightstatus.h"
+   #include "systemstats.h"
+   #include "systemalarms.h"
+   #include "takeofflocation.h"
+   #include "homelocation.h"
+   #include "positionstate.h"
+   #include "velocitystate.h"
+   #include "stabilizationdesired.h"
+   #include "stabilizationsettings.h"
+   #include "stabilizationbank.h"
+   #include "stabilizationsettingsbank1.h"
+   #include "stabilizationsettingsbank2.h"
+   #include "stabilizationsettingsbank3.h"
+   #include "magstate.h"
+ */
 #include "objectpersistence.h"
 
 #include "pios_sensors.h"
@@ -73,181 +74,114 @@
 
 #include <uavorosbridgemessage_priv.h>
 
-
-
-
-
-
-
-
-
-typedef enum {
-    ROS_IDLE,
-} ros_state;
-
-
-
 struct ros_bridge {
-    uintptr_t    com;
+    uintptr_t     com;
 
-    ros_state    state;
-    size_t 
-    uint8_t ros_tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
-    uint8_t ros_rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
+    uint32_t      lastPingTimestamp;
+    uint8_t       pingSequence;
+    PiOSDeltatimeConfig roundtrip;
+    double        roundTripTime;
+    uint8_t       rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
+    size_t        rx_length;
+    volatile bool scheduled[ROSBRIDGEMESSAGE_END_ARRAY_SIZE];
 };
 
 #if defined(PIOS_ROS_STACK_SIZE)
-#define STACK_SIZE_BYTES     PIOS_ROS_STACK_SIZE
+#define STACK_SIZE_BYTES  PIOS_ROS_STACK_SIZE
 #else
-#define STACK_SIZE_BYTES     768
+#define STACK_SIZE_BYTES  768
 #endif
-#define TASK_PRIORITY        (tskIDLE_PRIORITY)
-
-#define MAX_ALARM_LEN        30
-
-#define BOOT_DISPLAY_TIME_MS (10 * 1000)
+#define TASK_PRIORITY     CALLBACK_TASK_AUXILIARY
+#define CALLBACK_PRIORITY CALLBACK_PRIORITY_REGULAR
+#define CBTASK_PRIORITY   CALLBACK_TASK_AUXILIARY
 
 static bool module_enabled = false;
 static struct ros_bridge *ros;
 static int32_t uavoROSBridgeInitialize(void);
-static void uavoROSBridgeTask(void *parameters);
+static void uavoROSBridgeRxTask(void *parameters);
+static void uavoROSBridgeTxTask(void);
+static DelayedCallbackInfo *callbackHandle;
+static rosbridgemessage_handler ping_handler, pong_handler, fullstate_estimate_handler, imu_average_handler, gimbal_estimate_handler;
 
-static void ros_send(struct ros_bridge *m, uint8_t cmd, const uint8_t *data, size_t len)
-{
-    uint8_t buf[5];
-    uint8_t cs = (uint8_t)(len) ^ cmd;
+static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
+    ping_handler,
+    NULL,
+    NULL,
+    NULL,
+    pong_handler,
+    fullstate_estimate_handler,
+    imu_average_handler,
+    gimbal_estimate_handler
+};
 
-    buf[0] = '$';
-    buf[1] = 'M';
-    buf[2] = '>';
-    buf[3] = (uint8_t)(len);
-    buf[4] = cmd;
-
-    PIOS_COM_SendBuffer(m->com, buf, sizeof(buf));
-
-    if (len > 0) {
-        PIOS_COM_SendBuffer(m->com, data, len);
-
-        for (unsigned i = 0; i < len; i++) {
-            cs ^= data[i];
-        }
-    }
-
-    cs    ^= 0;
-
-    buf[0] = cs;
-    PIOS_COM_SendBuffer(m->com, buf, 1);
-}
 
 /**
  * Process incoming bytes from an ROS query thing.
  * @param[in] b received byte
  * @return true if we should continue processing bytes
  */
-static bool ros_receive_byte(struct ros_bridge *m, uint8_t b)
+static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
 {
-    switch (m->state) {
-    case ROS_IDLE:
-        switch (b) {
-        case 0xe0: // uavtalk matching first part of 0x3c @ 57600 baud
-            m->state = ROS_MAYBE_UAVTALK_SLOW2;
+    m->rx_buffer[m->rx_length] = b;
+    m->rx_length++;
+    rosbridgemessage_t *message = (rosbridgemessage_t *)m->rx_buffer;
+
+    // very simple parser - but not a state machine, just a few checks
+    if (m->rx_length <= offsetof(rosbridgemessage_t, length)) {
+        // check (partial) magic number - partial is important since we need to restart at any time if garbage is received
+        uint32_t canary = 0xff;
+        for (uint32_t t = 1; t < m->rx_length; t++) {
+            canary = (canary << 8) || 0xff;
+        }
+        if ((message->magic & canary) != (ROSBRIDGEMAGIC & canary)) {
+            // parse error, not beginning of message
+            m->rx_length = 0;
+        }
+    }
+    if (m->rx_length == offsetof(rosbridgemessage_t, timestamp)) {
+        if (message->length < offsetof(rosbridgemessage_t, data) || message->length > ROSBRIDGEMESSAGE_BUFFERSIZE - offsetof(rosbridgemessage_t, data)) {
+            // parse error, no messages are that long
+            m->rx_length = 0;
+        }
+    }
+    if (m->rx_length == offsetof(rosbridgemessage_t, crc32)) {
+        if (message->type >= ROSBRIDGEMESSAGE_END_ARRAY_SIZE) {
+            // parse error
+            m->rx_length = 0;
+        }
+        if (message->length != ROSBRIDGEMESSAGE_SIZES[message->type]) {
+            // parse error
+            m->rx_length = 0;
+        }
+    }
+    if (m->rx_length < offsetof(rosbridgemessage_t, data)) {
+        // not a parse failure, just not there yet
+        return;
+    }
+    if (m->rx_length == offsetof(rosbridgemessage_t, data) + ROSBRIDGEMESSAGE_SIZES[message->type]) {
+        // complete message received and stored in pointer "message"
+        switch (message->type) {
+        case ROSBRIDGEMESSAGE_PING:
+            m->scheduled[ROSBRIDGEMESSAGE_PONG];
+            PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
             break;
-        case '<': // uavtalk matching with 0x3c 0x2x 0xxx 0x0x
-            m->state = ROS_MAYBE_UAVTALK2;
+        case ROSBRIDGEMESSAGE_POSVEL_ESTIMATE:
+            // TODO tell SateEstimation a position and velocity including variance
             break;
-        case '$':
-            m->state = ROS_HEADER_START;
+        case ROSBRIDGEMESSAGE_FLIGHTCONTROL:
+            // TODO set apropriate UAVObjects for fliht control overrides
+            break;
+        case ROSBRIDGEMESSAGE_GIMBALCONTROL:
+            // TODO implement gimbal control somehow
+            break;
+        case ROSBRIDGEMESSAGE_PONG:
+            pong_handler(m, message);
             break;
         default:
-            m->state = ROS_IDLE;
+            // do nothing at all and discard the message
+            break;
         }
-        break;
-    case ROS_HEADER_START:
-        m->state = b == 'M' ? ROS_HEADER_M : ROS_IDLE;
-        break;
-    case ROS_HEADER_M:
-        m->state = b == '<' ? ROS_HEADER_SIZE : ROS_IDLE;
-        break;
-    case ROS_HEADER_SIZE:
-        m->state = ros_state_size(m, b);
-        break;
-    case ROS_HEADER_CMD:
-        m->state = ros_state_cmd(m, b);
-        break;
-    case ROS_FILLBUF:
-        m->state = ros_state_fill_buf(m, b);
-        break;
-    case ROS_CHECKSUM:
-        m->state = ros_state_checksum(m, b);
-        break;
-    case ROS_DISCARD:
-        m->state = ros_state_discard(m, b);
-        break;
-    case ROS_MAYBE_UAVTALK2:
-        // e.g. 3c 20 1d 00
-        // second possible uavtalk byte
-        m->state = (b & 0xf0) == 0x20 ? ROS_MAYBE_UAVTALK3 : ROS_IDLE;
-        break;
-    case ROS_MAYBE_UAVTALK3:
-        // third possible uavtalk byte can be anything
-        m->state = ROS_MAYBE_UAVTALK4;
-        break;
-    case ROS_MAYBE_UAVTALK4:
-        m->state = ROS_IDLE;
-        // If this looks like the fourth possible uavtalk byte, we're done
-        if ((b & 0xf0) == 0) {
-            PIOS_COM_TELEM_RF = m->com;
-            return false;
-        }
-        break;
-    case ROS_MAYBE_UAVTALK_SLOW2:
-        m->state = b == 0x18 ? ROS_MAYBE_UAVTALK_SLOW3 : ROS_IDLE;
-        break;
-    case ROS_MAYBE_UAVTALK_SLOW3:
-        m->state = b == 0x98 ? ROS_MAYBE_UAVTALK_SLOW4 : ROS_IDLE;
-        break;
-    case ROS_MAYBE_UAVTALK_SLOW4:
-        m->state = b == 0x7e ? ROS_MAYBE_UAVTALK_SLOW5 : ROS_IDLE;
-        break;
-    case ROS_MAYBE_UAVTALK_SLOW5:
-        m->state = b == 0x00 ? ROS_MAYBE_UAVTALK_SLOW6 : ROS_IDLE;
-        break;
-    case ROS_MAYBE_UAVTALK_SLOW6:
-        m->state = ROS_IDLE;
-        // If this looks like the sixth possible 57600 baud uavtalk byte, we're done
-        if (b == 0x60) {
-            PIOS_COM_ChangeBaud(m->com, 57600);
-            PIOS_COM_TELEM_RF = m->com;
-            return false;
-        }
-        break;
     }
-
-    return true;
-}
-
-/**
- * Module start routine automatically called after initialization routine
- * @return 0 when was successful
- */
-static int32_t uavoROSBridgeStart(void)
-{
-    if (!module_enabled) {
-        // give port to telemetry if it doesn't have one
-        // stops board getting stuck in condition where it can't be connected to gcs
-        if (!PIOS_COM_TELEM_RF) {
-            PIOS_COM_TELEM_RF = pios_com_ros_id;
-        }
-
-        return -1;
-    }
-
-    xTaskHandle taskHandle;
-
-    xTaskCreate(uavoROSBridgeTask, "uavoROSBridge", STACK_SIZE_BYTES / 4, NULL, TASK_PRIORITY, &taskHandle);
-    PIOS_TASK_MONITOR_RegisterTask(TASKINFO_RUNNING_UAVOROSBRIDGE, taskHandle);
-
-    return 0;
 }
 
 static uint32_t hwsettings_rosspeed_enum_to_baud(uint8_t baud)
@@ -279,24 +213,51 @@ static uint32_t hwsettings_rosspeed_enum_to_baud(uint8_t baud)
 
 
 /**
+ * Module start routine automatically called after initialization routine
+ * @return 0 when was successful
+ */
+static int32_t uavoROSBridgeStart(void)
+{
+    if (!module_enabled) {
+        // give port to telemetry if it doesn't have one
+        // stops board getting stuck in condition where it can't be connected to gcs
+        if (!PIOS_COM_TELEM_RF) {
+            PIOS_COM_TELEM_RF = PIOS_COM_ROS;
+        }
+
+        return -1;
+    }
+
+    PIOS_DELTATIME_Init(&ros->roundtrip, 1e-3f, 1e-6f, 10.0f, 1e-1f);
+
+    xTaskHandle taskHandle;
+
+    xTaskCreate(uavoROSBridgeRxTask, "uavoROSBridge", STACK_SIZE_BYTES / 4, NULL, TASK_PRIORITY, &taskHandle);
+    PIOS_TASK_MONITOR_RegisterTask(TASKINFO_RUNNING_UAVOROSBRIDGE, taskHandle);
+    PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
+
+    return 0;
+}
+
+/**
  * Module initialization routine
  * @return 0 when initialization was successful
  */
 static int32_t uavoROSBridgeInitialize(void)
 {
-    if (pios_com_ros_id) {
+    if (PIOS_COM_ROS) {
         ros = pios_malloc(sizeof(*ros));
         if (ros != NULL) {
             memset(ros, 0x00, sizeof(*ros));
 
-            ros->com = pios_com_ros_id;
+            ros->com = PIOS_COM_ROS;
 
-            // now figure out enabled features: registered sensors, ADC routing, GPS
-
+            HwSettingsInitialize();
             HwSettingsROSSpeedOptions rosSpeed;
             HwSettingsROSSpeedGet(&rosSpeed);
 
-            PIOS_COM_ChangeBaud(pios_com_ros_id, hwsettings_rosspeed_enum_to_baud(rosSpeed));
+            PIOS_COM_ChangeBaud(PIOS_COM_ROS, hwsettings_rosspeed_enum_to_baud(rosSpeed));
+            callbackHandle = PIOS_CALLBACKSCHEDULER_Create(&uavoROSBridgeTxTask, CALLBACK_PRIORITY, CBTASK_PRIORITY, CALLBACKINFO_RUNNING_UAVOROSBRIDGE, STACK_SIZE_BYTES);
 
             module_enabled = true;
             return 0;
@@ -307,23 +268,80 @@ static int32_t uavoROSBridgeInitialize(void)
 }
 MODULE_INITCALL(uavoROSBridgeInitialize, uavoROSBridgeStart);
 
+/** various handlers **/
+static void ping_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    rosbridgemessage_pingpong_t *data = (rosbridgemessage_pingpong_t *)&(m->data);
+
+    data->sequence_number = rb->pingSequence++;
+    rb->roundtrip.last    = PIOS_DELAY_GetRaw();
+}
+
+static void pong_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    rosbridgemessage_pingpong_t *data = (rosbridgemessage_pingpong_t *)&(m->data);
+
+    if (data->sequence_number != rb->pingSequence) {
+        return;
+    }
+    PIOS_DELTATIME_GetAverageSeconds(&(rb->roundtrip));
+}
+static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge *rb, __attribute__((unused)) rosbridgemessage_t *m)
+{
+    // TODO
+}
+static void imu_average_handler(__attribute__((unused)) struct ros_bridge *rb, __attribute__((unused)) rosbridgemessage_t *m)
+{
+    // TODO
+}
+static void gimbal_estimate_handler(__attribute__((unused)) struct ros_bridge *rb, __attribute__((unused)) rosbridgemessage_t *m)
+{
+    // TODO
+}
+
+/**
+ * Main task routine
+ * @param[in] parameters parameter given by PIOS_Callback_Create()
+ */
+static void uavoROSBridgeTxTask(void)
+{
+    uint8_t buffer[ROSBRIDGEMESSAGE_BUFFERSIZE]; // buffer on the stack? could also be in static RAM but not reuseale by other callbacks then
+    rosbridgemessage_t *message = (rosbridgemessage_t *)buffer;
+
+    for (rosbridgemessagetype_t type = ROSBRIDGEMESSAGE_PING; type < ROSBRIDGEMESSAGE_END_ARRAY_SIZE; type++) {
+        if (ros->scheduled[type] && rosbridgemessagehandlers[type] != NULL) {
+            message->magic     = ROSBRIDGEMAGIC;
+            message->length    = ROSBRIDGEMESSAGE_SIZES[type];
+            message->type      = type;
+            message->timestamp = PIOS_DELAY_GetuS();
+            (*rosbridgemessagehandlers[type])(ros, message);
+            message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
+            int32_t ret = PIOS_COM_SendBufferNonBlocking(ros->com, buffer, offsetof(rosbridgemessage_t, data) + message->length);
+            if (ret >= 0) {
+                ros->scheduled[type] = false;
+            }
+            PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
+            return;
+        }
+    }
+}
+
+
 /**
  * Main task routine
  * @param[in] parameters parameter given by PIOS_Thread_Create()
  */
-static void uavoROSBridgeTask(__attribute__((unused)) void *parameters)
+static void uavoROSBridgeRxTask(__attribute__((unused)) void *parameters)
 {
     while (1) {
         uint8_t b = 0;
-        uint16_t count = PIOS_COM_ReceiveBuffer(ros->com, &b, 1, ~0);
+        uint16_t count = PIOS_COM_ReceiveBuffer(ros->com, &b, 10000, ~0);
         if (count) {
-            if (!ros_receive_byte(ros, b)) {
-                // Returning is considered risky here as
-                // that's unusual and this is an edge case.
-                while (1) {
-                    PIOS_DELAY_WaitmS(60 * 1000);
-                }
-            }
+            ros_receive_byte(ros, b);
+        } else {
+            // send a ping every 10 seconds
+            ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
+            PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
         }
     }
 }

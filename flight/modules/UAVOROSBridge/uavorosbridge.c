@@ -324,6 +324,10 @@ static void uavoROSBridgeTxTask(void)
             return;
         }
     }
+    // nothing scheduled, do a ping in 10 secods time
+
+ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
+    PIOS_CALLBACKSCHEDULER_Schedule(callbackHandle,10000,CALLBACK_UPDATEMODE_SOONER);
 }
 
 
@@ -335,13 +339,9 @@ static void uavoROSBridgeRxTask(__attribute__((unused)) void *parameters)
 {
     while (1) {
         uint8_t b = 0;
-        uint16_t count = PIOS_COM_ReceiveBuffer(ros->com, &b, 10000, ~0);
+        uint16_t count = PIOS_COM_ReceiveBuffer(ros->com, &b, 1, ~0);
         if (count) {
             ros_receive_byte(ros, b);
-        } else {
-            // send a ping every 10 seconds
-            ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
-            PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
         }
     }
 }

@@ -317,6 +317,7 @@ static void uavoROSBridgeTxTask(void)
             (*rosbridgemessagehandlers[type])(ros, message);
             message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
             int32_t ret = PIOS_COM_SendBufferNonBlocking(ros->com, buffer, offsetof(rosbridgemessage_t, data) + message->length);
+            // int32_t ret = PIOS_COM_SendBuffer(ros->com, buffer, offsetof(rosbridgemessage_t, data) + message->length);
             if (ret >= 0) {
                 ros->scheduled[type] = false;
             }

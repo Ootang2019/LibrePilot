@@ -743,8 +743,8 @@ void PIOS_Board_Init(void)
             PIOS_Assert(rx_buffer);
             PIOS_Assert(tx_buffer);
             if (PIOS_COM_Init(&pios_com_ros_id, &pios_usb_cdc_com_driver, pios_usb_cdc_id,
-                              rx_buffer, PIOS_COM_BRIDGE_RX_BUF_LEN,
-                              tx_buffer, PIOS_COM_BRIDGE_TX_BUF_LEN)) {
+                              rx_buffer, PIOS_COM_ROS_RX_BUF_LEN,
+                              tx_buffer, PIOS_COM_ROS_TX_BUF_LEN)) {
                 PIOS_Assert(0);
             }
         }

@@ -136,22 +136,26 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
         if ((message->magic & canary) != (ROSBRIDGEMAGIC & canary)) {
             // parse error, not beginning of message
             m->rx_length = 0;
+            return;
         }
     }
     if (m->rx_length == offsetof(rosbridgemessage_t, timestamp)) {
-        if (message->length < offsetof(rosbridgemessage_t, data) || message->length > ROSBRIDGEMESSAGE_BUFFERSIZE - offsetof(rosbridgemessage_t, data)) {
+        if (message->length > ROSBRIDGEMESSAGE_BUFFERSIZE - offsetof(rosbridgemessage_t, data)) {
             // parse error, no messages are that long
             m->rx_length = 0;
+            return;
         }
     }
     if (m->rx_length == offsetof(rosbridgemessage_t, crc32)) {
         if (message->type >= ROSBRIDGEMESSAGE_END_ARRAY_SIZE) {
             // parse error
             m->rx_length = 0;
+            return;
         }
         if (message->length != ROSBRIDGEMESSAGE_SIZES[message->type]) {
             // parse error
             m->rx_length = 0;
+            return;
         }
     }
     if (m->rx_length < offsetof(rosbridgemessage_t, data)) {
@@ -160,6 +164,13 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
     }
     if (m->rx_length == offsetof(rosbridgemessage_t, data) + ROSBRIDGEMESSAGE_SIZES[message->type]) {
         // complete message received and stored in pointer "message"
+        // empty buffer for next message
+        m->rx_length = 0;
+
+        if (PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length) != message->crc32) {
+            // crc mismatch
+            return;
+        }
         switch (message->type) {
         case ROSBRIDGEMESSAGE_PING:
             m->scheduled[ROSBRIDGEMESSAGE_PONG];

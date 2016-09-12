@@ -78,7 +78,8 @@ struct ros_bridge {
     uintptr_t     com;
 
     uint32_t      lastPingTimestamp;
-    uint8_t       pingSequence;
+    uint8_t       myPingSequence;
+    uint8_t       remotePingSequence;
     PiOSDeltatimeConfig roundtrip;
     double        roundTripTime;
     uint8_t       rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
@@ -101,7 +102,7 @@ static int32_t uavoROSBridgeInitialize(void);
 static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
-static rosbridgemessage_handler ping_handler, pong_handler, fullstate_estimate_handler, imu_average_handler, gimbal_estimate_handler;
+static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gimbal_estimate_handler;
 
 static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     ping_handler,
@@ -173,8 +174,7 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
         }
         switch (message->type) {
         case ROSBRIDGEMESSAGE_PING:
-            m->scheduled[ROSBRIDGEMESSAGE_PONG];
-            PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
+            ping_r_handler(m, message);
             break;
         case ROSBRIDGEMESSAGE_POSVEL_ESTIMATE:
             // TODO tell SateEstimation a position and velocity including variance
@@ -186,7 +186,7 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
             // TODO implement gimbal control somehow
             break;
         case ROSBRIDGEMESSAGE_PONG:
-            pong_handler(m, message);
+            pong_r_handler(m, message);
             break;
         default:
             // do nothing at all and discard the message
@@ -280,23 +280,40 @@ static int32_t uavoROSBridgeInitialize(void)
 MODULE_INITCALL(uavoROSBridgeInitialize, uavoROSBridgeStart);
 
 /** various handlers **/
+static void ping_r_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    rosbridgemessage_pingpong_t *data = (rosbridgemessage_pingpong_t *)&(m->data);
+
+    rb->remotePingSequence = data->sequence_number;
+    rb->scheduled[ROSBRIDGEMESSAGE_PONG] = true;
+    PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
+}
+
 static void ping_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
 {
     rosbridgemessage_pingpong_t *data = (rosbridgemessage_pingpong_t *)&(m->data);
 
-    data->sequence_number = rb->pingSequence++;
+    data->sequence_number = rb->myPingSequence++;
     rb->roundtrip.last    = PIOS_DELAY_GetRaw();
+}
+
+static void pong_r_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    rosbridgemessage_pingpong_t *data = (rosbridgemessage_pingpong_t *)&(m->data);
+
+    if (data->sequence_number != rb->myPingSequence) {
+        return;
+    }
+    PIOS_DELTATIME_GetAverageSeconds(&(rb->roundtrip));
 }
 
 static void pong_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
 {
     rosbridgemessage_pingpong_t *data = (rosbridgemessage_pingpong_t *)&(m->data);
 
-    if (data->sequence_number != rb->pingSequence) {
-        return;
-    }
-    PIOS_DELTATIME_GetAverageSeconds(&(rb->roundtrip));
+    data->sequence_number = rb->remotePingSequence;
 }
+
 static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge *rb, __attribute__((unused)) rosbridgemessage_t *m)
 {
     // TODO

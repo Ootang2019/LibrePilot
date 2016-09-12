@@ -122,6 +122,7 @@ static const size_t ROSBRIDGEMESSAGE_SIZES[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     sizeof(rosbridgemessage_posvel_estimate_t),
     sizeof(rosbridgemessage_flightcontrol_t),
     sizeof(rosbridgemessage_gimbalcontrol_t),
+    sizeof(rosbridgemessage_pingpong_t),
     sizeof(rosbridgemessage_fullstate_estimate_t),
     sizeof(rosbridgemessage_imu_average_t),
     sizeof(rosbridgemessage_gimbal_estimate_t),

@@ -66,6 +66,7 @@
    #include "stabilizationsettingsbank3.h"
    #include "magstate.h"
  */
+#include "rosbridgestatus.h"
 #include "objectpersistence.h"
 
 #include "pios_sensors.h"
@@ -141,14 +142,14 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
         }
     }
     if (m->rx_length == offsetof(rosbridgemessage_t, timestamp)) {
-        if (message->length > ROSBRIDGEMESSAGE_BUFFERSIZE - offsetof(rosbridgemessage_t, data)) {
+        if (message->length > (uint32_t)(ROSBRIDGEMESSAGE_BUFFERSIZE - offsetof(rosbridgemessage_t, data))) {
             // parse error, no messages are that long
             m->rx_length = 0;
             return;
         }
     }
     if (m->rx_length == offsetof(rosbridgemessage_t, crc32)) {
-        if (message->type >= ROSBRIDGEMESSAGE_END_ARRAY_SIZE) {
+        if (message->type >= (uint32_t)ROSBRIDGEMESSAGE_END_ARRAY_SIZE) {
             // parse error
             m->rx_length = 0;
             return;
@@ -172,6 +173,10 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
             // crc mismatch
             return;
         }
+        uint32_t rxpackets;
+        ROSBridgeStatusRxPacketsGet(&rxpackets);
+        rxpackets++;
+        ROSBridgeStatusRxPacketsSet(&rxpackets);
         switch (message->type) {
         case ROSBRIDGEMESSAGE_PING:
             ping_r_handler(m, message);
@@ -263,6 +268,7 @@ static int32_t uavoROSBridgeInitialize(void)
 
             ros->com = PIOS_COM_ROS;
 
+            ROSBridgeStatusInitialize();
             HwSettingsInitialize();
             HwSettingsROSSpeedOptions rosSpeed;
             HwSettingsROSSpeedGet(&rosSpeed);
@@ -293,7 +299,7 @@ static void ping_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
 {
     rosbridgemessage_pingpong_t *data = (rosbridgemessage_pingpong_t *)&(m->data);
 
-    data->sequence_number = rb->myPingSequence++;
+    data->sequence_number = ++rb->myPingSequence;
     rb->roundtrip.last    = PIOS_DELAY_GetRaw();
 }
 
@@ -304,7 +310,8 @@ static void pong_r_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
     if (data->sequence_number != rb->myPingSequence) {
         return;
     }
-    PIOS_DELTATIME_GetAverageSeconds(&(rb->roundtrip));
+    float roundtrip = PIOS_DELTATIME_GetAverageSeconds(&(rb->roundtrip));
+    ROSBridgeStatusPingRoundTripTimeSet(&roundtrip);
 }
 
 static void pong_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
@@ -348,6 +355,10 @@ static void uavoROSBridgeTxTask(void)
             // int32_t ret = PIOS_COM_SendBuffer(ros->com, buffer, offsetof(rosbridgemessage_t, data) + message->length);
             if (ret >= 0) {
                 ros->scheduled[type] = false;
+                uint32_t txpackets;
+                ROSBridgeStatusTxPacketsGet(&txpackets);
+                txpackets++;
+                ROSBridgeStatusTxPacketsSet(&txpackets);
             }
             PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
             return;

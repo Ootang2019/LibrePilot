@@ -82,7 +82,7 @@ public:
             }
         }
         if (rx_length == offsetof(rosbridgemessage_t, timestamp)) {
-            if (message->length > ROSBRIDGEMESSAGE_BUFFERSIZE - offsetof(rosbridgemessage_t, data)) {
+            if (message->length > (uint32_t)(ROSBRIDGEMESSAGE_BUFFERSIZE - offsetof(rosbridgemessage_t, data))) {
                 // parse error, no messages are that long
                 rx_length = 0;
                 {
@@ -96,7 +96,7 @@ public:
             }
         }
         if (rx_length == offsetof(rosbridgemessage_t, crc32)) {
-            if (message->type >= ROSBRIDGEMESSAGE_END_ARRAY_SIZE) {
+            if (message->type >= (uint32_t)ROSBRIDGEMESSAGE_END_ARRAY_SIZE) {
                 // parse error
                 rx_length = 0;
                 {

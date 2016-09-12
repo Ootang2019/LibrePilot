@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 2.8.3)
 project(librepilot)
 
 
-set(CMAKE_C_FLAGS "-std=c99 ${CMAKE_C_FLAGS}")
+set(CMAKE_C_FLAGS "-std=c99 -g ${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "-g ${CMAKE_CXX_FLAGS}")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)

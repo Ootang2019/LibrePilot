@@ -125,6 +125,7 @@ UAVOBJSRCFILENAMES += mpugyroaccelsettings
 UAVOBJSRCFILENAMES += txpidsettings
 UAVOBJSRCFILENAMES += txpidstatus
 UAVOBJSRCFILENAMES += takeofflocation
+UAVOBJSRCFILENAMES += rosbridgestatus
 UAVOBJSRCFILENAMES += perfcounter
 UAVOBJSRCFILENAMES += systemidentsettings
 UAVOBJSRCFILENAMES += systemidentstate

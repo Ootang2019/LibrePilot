@@ -63,22 +63,17 @@ typedef struct {
 
 typedef struct {
     float position[3];
-    float posvar[3];
     float velocity[3];
-    float velvar[3];
 } rosbridgemessage_posvel_estimate_t;
 
 typedef enum {
-    ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_MANUAL,
-    ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_RATE,
     ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ATTITUDE,
-    ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_VELOCITY,
     ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT,
 } rosbridgemessage_flightcontrol_mode_t;
 
 typedef struct {
-    float control[4];
-    rosbridgemessage_flightcontrol_mode_t mode;
+    float    control[4];
+    uint32_t mode;
 } rosbridgemessage_flightcontrol_t;
 
 typedef struct {

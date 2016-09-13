@@ -51,7 +51,7 @@ public:
     uint8_t rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t rx_length;
     rosbridge *parent;
-    ros::Publisher state_pub,state2_pub;
+    ros::Publisher state_pub, state2_pub;
     uint32_t sequence;
 
 
@@ -165,61 +165,60 @@ public:
         }
     }
 
-    void fullstate_estimate_handler(rosbridgemessage_t * message)
-{
-	rosbridgemessage_fullstate_estimate_t *data = (rosbridgemessage_fullstate_estimate_t *)message->data;
-	nav_msgs::Odometry odometry;
-	geometry_msgs::PoseStamped pose;
+    void fullstate_estimate_handler(rosbridgemessage_t *message)
+    {
+        rosbridgemessage_fullstate_estimate_t *data = (rosbridgemessage_fullstate_estimate_t *)message->data;
+        nav_msgs::Odometry odometry;
+        geometry_msgs::PoseStamped pose;
 
-	// ATTENTION:  LibrePilot - like most outdoor platforms uses North-East-Down coordinate frame for all data
-	// in body frame
-	// x points forward
-	// y points right
-	// z points down
-	// this also goes for the quaternion
+        // ATTENTION:  LibrePilot - like most outdoor platforms uses North-East-Down coordinate frame for all data
+        // in body frame
+        // x points forward
+        // y points right
+        // z points down
+        // this also goes for the quaternion
 
-	// ROS uses the annozing east-north-up coordinate frame which means axis need to be swapped and signs inverted
-	odometry.pose.pose.position.y=data->position[0];
-	odometry.pose.pose.position.x=data->position[1];
-	odometry.pose.pose.position.z=-data->position[2];
-	
-	tf::Quaternion q_0(data->quaternion[1],-data->quaternion[2],-data->quaternion[3],data->quaternion[0]);
-	tf::Quaternion q_1,q_2;
-	q_1.setEuler(0,0,M_PI/2.0);
-	quaternionTFToMsg((q_1*q_0).normalize(),odometry.pose.pose.orientation);
-	//quaternionTFToMsg(q_0,odometry.pose.pose.orientation);
+        // ROS uses the annozing east-north-up coordinate frame which means axis need to be swapped and signs inverted
+        odometry.pose.pose.position.y = data->position[0];
+        odometry.pose.pose.position.x = data->position[1];
+        odometry.pose.pose.position.z = -data->position[2];
 
-	odometry.twist.twist.linear.y=data->velocity[0];
-	odometry.twist.twist.linear.x=data->velocity[1];
-	odometry.twist.twist.linear.z=-data->velocity[2];
-	odometry.twist.twist.angular.y=data->velocity[0];
-	odometry.twist.twist.angular.x=data->velocity[1];
-	odometry.twist.twist.angular.z=-data->velocity[2];
-	// FAKE covariance -- LibrePilot does have a covariance matrix, but its 13x13 and not trivially comparable
-	// also ROS documentation on how the covariance is encoded into this double[36] (ro wvs col major, order of members, ...)
-	// is very lacing
-	for (int t=0;t<6;t++) {
-		for (int t2=0;t<6;t++) {
-			if (t==t2) {
-				odometry.twist.covariance[t*6+t2]=1.0;
-			} else {
-				odometry.twist.covariance[t*6+t2]=0.0;
-			}
-		}
-	}
-	odometry.header.seq=sequence++;
-	odometry.header.stamp.sec=(uint32_t)(message->timestamp/1000000);
-	odometry.header.stamp.nsec=(uint32_t)1000*(message->timestamp%1000000);
-	odometry.header.frame_id = "1";
-	odometry.child_frame_id = "2";
-	pose.header=odometry.header;
-	pose.pose=odometry.pose.pose;
-	
-	state_pub.publish(odometry);
-	state2_pub.publish(pose);
+        tf::Quaternion q_0(data->quaternion[1], -data->quaternion[2], -data->quaternion[3], data->quaternion[0]);
+        tf::Quaternion q_1, q_2;
+        q_1.setEuler(0, 0, M_PI / 2.0);
+        quaternionTFToMsg((q_1 * q_0).normalize(), odometry.pose.pose.orientation);
+        // quaternionTFToMsg(q_0,odometry.pose.pose.orientation);
+
+        odometry.twist.twist.linear.y  = data->velocity[0];
+        odometry.twist.twist.linear.x  = data->velocity[1];
+        odometry.twist.twist.linear.z  = -data->velocity[2];
+        odometry.twist.twist.angular.y = data->velocity[0];
+        odometry.twist.twist.angular.x = data->velocity[1];
+        odometry.twist.twist.angular.z = -data->velocity[2];
+        // FAKE covariance -- LibrePilot does have a covariance matrix, but its 13x13 and not trivially comparable
+        // also ROS documentation on how the covariance is encoded into this double[36] (ro wvs col major, order of members, ...)
+        // is very lacing
+        for (int t = 0; t < 6; t++) {
+            for (int t2 = 0; t < 6; t++) {
+                if (t == t2) {
+                    odometry.twist.covariance[t * 6 + t2] = 1.0;
+                } else {
+                    odometry.twist.covariance[t * 6 + t2] = 0.0;
+                }
+            }
+        }
+        odometry.header.seq = sequence++;
+        odometry.header.stamp.sec  = (uint32_t)(message->timestamp / 1000000);
+        odometry.header.stamp.nsec = (uint32_t)1000 * (message->timestamp % 1000000);
+        odometry.header.frame_id   = "1";
+        odometry.child_frame_id    = "2";
+        pose.header = odometry.header;
+        pose.pose   = odometry.pose.pose;
+
+        state_pub.publish(odometry);
+        state2_pub.publish(pose);
         parent->rosinfoPrint("state published");
-	
-}
+    }
 
     void pong_handler(rosbridgemessage_pingpong_t *data)
     {
@@ -249,9 +248,9 @@ public:
     {
         unsigned char c;
 
-        rx_length = 0;
-	state_pub = nodehandle->advertise<nav_msgs::Odometry>("Octocopter", 10);
-	state2_pub = nodehandle->advertise<geometry_msgs::PoseStamped>("octoPose", 10);
+        rx_length  = 0;
+        state_pub  = nodehandle->advertise<nav_msgs::Odometry>("Octocopter", 10);
+        state2_pub = nodehandle->advertise<geometry_msgs::PoseStamped>("octoPose", 10);
         while (ros::ok()) {
             boost::asio::read(*port, boost::asio::buffer(&c, 1));
             ros_receive_byte(c);
@@ -271,7 +270,7 @@ readthread::readthread(ros::NodeHandle *nodehandle, boost::asio::serial_port *po
     instance->parent     = parent;
     instance->port       = port;
     instance->nodehandle = nodehandle;
-    instance->sequence=0;
+    instance->sequence   = 0;
     instance->thread     = new boost::thread(boost::bind(&readthread_priv::run, instance));
 }
 

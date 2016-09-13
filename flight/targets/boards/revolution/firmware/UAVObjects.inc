@@ -126,6 +126,7 @@ UAVOBJSRCFILENAMES += txpidsettings
 UAVOBJSRCFILENAMES += txpidstatus
 UAVOBJSRCFILENAMES += takeofflocation
 UAVOBJSRCFILENAMES += rosbridgestatus
+UAVOBJSRCFILENAMES += rospositionsensor
 UAVOBJSRCFILENAMES += perfcounter
 UAVOBJSRCFILENAMES += systemidentsettings
 UAVOBJSRCFILENAMES += systemidentstate

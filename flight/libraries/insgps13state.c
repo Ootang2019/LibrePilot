@@ -444,7 +444,9 @@ void CovariancePrediction(float F[NUMX][NUMX], float G[NUMX][NUMW],
     const float dT1  = 1.0f / dT; // multiplication is faster than division on fpu.
     const float dTsq = dT * dT;
 
-    float Dummy[NUMX][NUMX] = {{0.0f}};
+    float Dummy[NUMX][NUMX] = {
+        { 0.0f }
+    };
     int8_t i;
     int8_t k;
 

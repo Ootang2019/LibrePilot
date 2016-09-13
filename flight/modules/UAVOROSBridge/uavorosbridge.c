@@ -62,7 +62,7 @@
    #include "stabilizationsettingsbank3.h"
    #include "magstate.h"
  */
-   #include "rospositionsensor.h"
+   #include "auxpositionsensor.h"
    #include "gpsvelocitysensor.h"
    #include "pathdesired.h"
    #include "flightmodesettings.h"
@@ -292,7 +292,7 @@ static int32_t uavoROSBridgeInitialize(void)
             ros->com = PIOS_COM_ROS;
 
             ROSBridgeStatusInitialize();
-            ROSPositionSensorInitialize();
+            AUXPositionSensorInitialize();
             GPSVelocitySensorInitialize();
             HwSettingsInitialize();
             HwSettingsROSSpeedOptions rosSpeed;
@@ -391,7 +391,7 @@ static void posvel_estimate_r_handler(__attribute__((unused)) struct ros_bridge 
 {
     rosbridgemessage_posvel_estimate_t *data = (rosbridgemessage_posvel_estimate_t *)&(m->data);
     GPSVelocitySensorData vel;
-    ROSPositionSensorData pos;
+    AUXPositionSensorData pos;
 
     pos.North = data->position[0];
     pos.East  = data->position[1];
@@ -399,7 +399,7 @@ static void posvel_estimate_r_handler(__attribute__((unused)) struct ros_bridge 
     vel.North = data->velocity[0];
     vel.East  = data->velocity[1];
     vel.Down  = data->velocity[2];
-    ROSPositionSensorSet(&pos);
+    AUXPositionSensorSet(&pos);
     GPSVelocitySensorSet(&vel);
 }
 

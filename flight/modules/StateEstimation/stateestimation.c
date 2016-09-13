@@ -40,7 +40,7 @@
 #include <airspeedsensor.h>
 #include <gpspositionsensor.h>
 #include <gpsvelocitysensor.h>
-#include <rospositionsensor.h>
+#include <auxpositionsensor.h>
 #include <homelocation.h>
 #include <auxmagsensor.h>
 #include <auxmagsettings.h>
@@ -282,7 +282,7 @@ int32_t StateEstimationInitialize(void)
     AirspeedSensorInitialize();
     GPSVelocitySensorInitialize();
     GPSPositionSensorInitialize();
-    ROSPositionSensorInitialize();
+    AUXPositionSensorInitialize();
 
     HomeLocationInitialize();
 
@@ -440,7 +440,7 @@ static void StateEstimationCb(void)
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_3_DIMENSIONS(MagSensor, boardMag, x, y, z);
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_3_DIMENSIONS(AuxMagSensor, auxMag, x, y, z);
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_3_DIMENSIONS(GPSVelocitySensor, vel, North, East, Down);
-    FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_3_DIMENSIONS(ROSPositionSensor, pos, North, East, Down);
+    FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_3_DIMENSIONS(AUXPositionSensor, pos, North, East, Down);
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_1_DIMENSION_WITH_CUSTOM_EXTRA_CHECK(BaroSensor, baro, Altitude, true);
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_2_DIMENSION_WITH_CUSTOM_EXTRA_CHECK(AirspeedSensor, airspeed, CalibratedAirspeed, TrueAirspeed, s.SensorConnected == AIRSPEEDSENSOR_SENSORCONNECTED_TRUE);
 

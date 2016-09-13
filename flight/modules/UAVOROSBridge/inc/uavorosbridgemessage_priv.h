@@ -50,7 +50,7 @@ struct rosbridgemessage_s {
     uint32_t magic;
     uint32_t length;
     uint32_t timestamp;
-    rosbridgemessagetype_t type;
+    uint32_t type;
     uint32_t crc32;
     uint8_t  data[];
 };
@@ -87,11 +87,9 @@ typedef struct {
 
 typedef struct {
     float quaternion[4];
-    float qvar[4];
     float position[3];
-    float posvar[3];
     float velocity[3];
-    float velvar[3];
+    float rotation[3];
 } rosbridgemessage_fullstate_estimate_t;
 
 typedef struct {

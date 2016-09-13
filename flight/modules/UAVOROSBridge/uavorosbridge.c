@@ -47,7 +47,6 @@
    #include "manualcontrolsettings.h"
    #include "oplinkstatus.h"
    #include "accessorydesired.h"
-   #include "attitudestate.h"
    #include "airspeedstate.h"
    #include "actuatorsettings.h"
    #include "actuatordesired.h"
@@ -56,8 +55,6 @@
    #include "systemalarms.h"
    #include "takeofflocation.h"
    #include "homelocation.h"
-   #include "positionstate.h"
-   #include "velocitystate.h"
    #include "stabilizationdesired.h"
    #include "stabilizationsettings.h"
    #include "stabilizationbank.h"
@@ -66,6 +63,10 @@
    #include "stabilizationsettingsbank3.h"
    #include "magstate.h"
  */
+   #include "positionstate.h"
+   #include "velocitystate.h"
+   #include "attitudestate.h"
+   #include "gyrostate.h"
 #include "rosbridgestatus.h"
 #include "objectpersistence.h"
 
@@ -83,6 +84,10 @@ struct ros_bridge {
     uint8_t       remotePingSequence;
     PiOSDeltatimeConfig roundtrip;
     double        roundTripTime;
+    uint32_t      pingTimer;
+    uint32_t      stateTimer;
+    uint32_t	rateTimer;
+    float	rateAccumulator[3];
     uint8_t       rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t        rx_length;
     volatile bool scheduled[ROSBRIDGEMESSAGE_END_ARRAY_SIZE];
@@ -97,6 +102,10 @@ struct ros_bridge {
 #define CALLBACK_PRIORITY CALLBACK_PRIORITY_REGULAR
 #define CBTASK_PRIORITY   CALLBACK_TASK_AUXILIARY
 
+#define PINGCOUNT 500
+#define STATECOUNT 10
+
+
 static bool module_enabled = false;
 static struct ros_bridge *ros;
 static int32_t uavoROSBridgeInitialize(void);
@@ -104,6 +113,8 @@ static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
 static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gimbal_estimate_handler;
+void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
+void RateCb(__attribute__((unused)) UAVObjEvent *ev);
 
 static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     ping_handler,
@@ -149,7 +160,7 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
         }
     }
     if (m->rx_length == offsetof(rosbridgemessage_t, crc32)) {
-        if (message->type >= (uint32_t)ROSBRIDGEMESSAGE_END_ARRAY_SIZE) {
+        if (message->type >= ROSBRIDGEMESSAGE_END_ARRAY_SIZE) {
             // parse error
             m->rx_length = 0;
             return;
@@ -245,6 +256,14 @@ static int32_t uavoROSBridgeStart(void)
     }
 
     PIOS_DELTATIME_Init(&ros->roundtrip, 1e-3f, 1e-6f, 10.0f, 1e-1f);
+    ros->pingTimer=0;
+    ros->stateTimer=0;
+    ros->rateTimer=0;
+    ros->rateAccumulator[0]=0;
+    ros->rateAccumulator[1]=0;
+    ros->rateAccumulator[2]=0;
+    ros->rx_length = 0;
+    ros->myPingSequence = 0x66;
 
     xTaskHandle taskHandle;
 
@@ -275,6 +294,12 @@ static int32_t uavoROSBridgeInitialize(void)
 
             PIOS_COM_ChangeBaud(PIOS_COM_ROS, hwsettings_rosspeed_enum_to_baud(rosSpeed));
             callbackHandle = PIOS_CALLBACKSCHEDULER_Create(&uavoROSBridgeTxTask, CALLBACK_PRIORITY, CBTASK_PRIORITY, CALLBACKINFO_RUNNING_UAVOROSBRIDGE, STACK_SIZE_BYTES);
+            VelocityStateInitialize();
+            PositionStateInitialize();
+            AttitudeStateInitialize();
+	    AttitudeStateConnectCallback(&AttitudeCb);
+            GyroStateInitialize();
+	    GyroStateConnectCallback(&RateCb);
 
             module_enabled = true;
             return 0;
@@ -321,9 +346,35 @@ static void pong_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
     data->sequence_number = rb->remotePingSequence;
 }
 
-static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge *rb, __attribute__((unused)) rosbridgemessage_t *m)
+static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
 {
-    // TODO
+	PositionStateData pos;
+	VelocityStateData vel;
+	AttitudeStateData att;
+	PositionStateGet(&pos);
+	VelocityStateGet(&vel);
+	AttitudeStateGet(&att);
+       rosbridgemessage_fullstate_estimate_t *data = (rosbridgemessage_fullstate_estimate_t *)&(m->data);
+	data->quaternion[0]=att.q1;
+	data->quaternion[1]=att.q2;
+	data->quaternion[2]=att.q3;
+	data->quaternion[3]=att.q4;
+	data->position[0]=pos.North;
+	data->position[1]=pos.East;
+	data->position[2]=pos.Down;
+	data->velocity[0]=vel.North;
+	data->velocity[1]=vel.East;
+	data->velocity[2]=vel.Down;
+	data->rotation[0]=ros->rateAccumulator[0];
+	data->rotation[1]=ros->rateAccumulator[1];
+	data->rotation[2]=ros->rateAccumulator[2];
+	if (ros->rateTimer>=1) {
+		float factor = 1.0f/(float)ros->rateTimer;
+		data->rotation[0]*=factor;
+		data->rotation[1]*=factor;
+		data->rotation[2]*=factor;
+		ros->rateTimer = 0;
+	}
 }
 static void imu_average_handler(__attribute__((unused)) struct ros_bridge *rb, __attribute__((unused)) rosbridgemessage_t *m)
 {
@@ -366,10 +417,41 @@ static void uavoROSBridgeTxTask(void)
     }
     // nothing scheduled, do a ping in 10 secods time
 
-    ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
-    PIOS_CALLBACKSCHEDULER_Schedule(callbackHandle, 10000, CALLBACK_UPDATEMODE_SOONER);
 }
 
+/**
+ * Event Callback on Gyro updates (called with PIOS_SENSOR_RATE - roughly 500 Hz - from State Estimation)
+ */
+void RateCb(__attribute__((unused)) UAVObjEvent *ev)
+{
+	GyroStateData gyr;
+	GyroStateGet(&gyr);
+	ros->rateAccumulator[0]+=gyr.x;
+	ros->rateAccumulator[1]+=gyr.y;
+	ros->rateAccumulator[2]+=gyr.z;
+	ros->rateTimer++;
+}
+
+/**
+ * Event Callback on Attitude updates (called with PIOS_SENSOR_RATE - roughly 500 Hz - from State Estimation)
+ */
+void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
+{
+	bool dispatch=false;
+	if (ros->pingTimer++>PINGCOUNT) {
+		ros->pingTimer=0;
+		dispatch=true;
+		ros->scheduled[ROSBRIDGEMESSAGE_PING]=true;
+	}
+	if (ros->stateTimer++>STATECOUNT) {
+		ros->stateTimer=0;
+		dispatch=true;
+		ros->scheduled[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE]=true;
+	}
+	if (dispatch && callbackHandle) {
+		PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
+	}
+}
 
 /**
  * Main task routine

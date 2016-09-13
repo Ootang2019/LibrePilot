@@ -49,7 +49,7 @@ public:
 
     void run()
     {
-        ros::Rate rate(10);
+        ros::Rate rate(0.1);
 
         while (ros::ok()) {
             uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];

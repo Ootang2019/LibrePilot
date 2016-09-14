@@ -33,6 +33,7 @@
 
 #include "rosbridge.h"
 #include "std_msgs/String.h"
+#include "geometry_msgs/TransformStamped.h"
 #include <sstream>
 #include "boost/thread.hpp"
 #include "writethread.h"
@@ -47,9 +48,31 @@ public:
     ros::NodeHandle *nodehandle;
     rosbridge *parent;
 
+    void poseCallback(const geometry_msgs::TransformStamped::ConstPtr & msg)
+    {
+        uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
+        rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
+        rosbridgemessage_pos_estimate_t *payload = (rosbridgemessage_pos_estimate_t *)message->data;
+
+        // apply ENU to NED conversion - switch x/y, reverse z
+        payload->position[0] = msg->transform.translation.y;
+        payload->position[1] = msg->transform.translation.x;
+        payload->position[2] = -msg->transform.translation.z;
+        message->magic     = ROSBRIDGEMAGIC;
+        message->type      = ROSBRIDGEMESSAGE_POS_ESTIMATE;
+        message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - *parent->getStart();
+        message->timestamp = diff.total_microseconds();
+        message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
+        parent->serialWrite(tx_buffer, message->length + offsetof(rosbridgemessage_t, data));
+        parent->rosinfoPrint("received position, sending");
+    }
+
     void run()
     {
         ros::Rate rate(0.1);
+
+        ros::Subscriber subscriber1 = nodehandle->subscribe("vicon/octocopter/frame", 10, &writethread_priv::poseCallback, this);
 
         while (ros::ok()) {
             uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];

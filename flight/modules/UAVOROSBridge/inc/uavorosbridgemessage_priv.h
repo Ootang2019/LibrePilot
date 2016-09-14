@@ -36,7 +36,7 @@
 
 typedef enum {
     ROSBRIDGEMESSAGE_PING,
-    ROSBRIDGEMESSAGE_POSVEL_ESTIMATE,
+    ROSBRIDGEMESSAGE_POS_ESTIMATE,
     ROSBRIDGEMESSAGE_FLIGHTCONTROL,
     ROSBRIDGEMESSAGE_GIMBALCONTROL,
     ROSBRIDGEMESSAGE_PONG,
@@ -63,8 +63,7 @@ typedef struct {
 
 typedef struct {
     float position[3];
-    float velocity[3];
-} rosbridgemessage_posvel_estimate_t;
+} rosbridgemessage_pos_estimate_t;
 
 typedef enum {
     ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ATTITUDE,
@@ -101,7 +100,7 @@ typedef struct {
 
 static const int32_t ROSBRIDGEMESSAGE_UPDATE_RATES[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     -1, // ping
-    -1, // posvel estimate
+    -1, // pos estimate
     -1, // flightcontrol
     -1, // gimbal_control -- all of the above are incoming messages from ROS
     -1, // pong -- not periodic but triggered
@@ -112,7 +111,7 @@ static const int32_t ROSBRIDGEMESSAGE_UPDATE_RATES[ROSBRIDGEMESSAGE_END_ARRAY_SI
 
 static const size_t ROSBRIDGEMESSAGE_SIZES[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     sizeof(rosbridgemessage_pingpong_t),
-    sizeof(rosbridgemessage_posvel_estimate_t),
+    sizeof(rosbridgemessage_pos_estimate_t),
     sizeof(rosbridgemessage_flightcontrol_t),
     sizeof(rosbridgemessage_gimbalcontrol_t),
     sizeof(rosbridgemessage_pingpong_t),

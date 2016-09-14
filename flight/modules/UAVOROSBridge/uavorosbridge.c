@@ -63,7 +63,6 @@
    #include "magstate.h"
  */
    #include "auxpositionsensor.h"
-   #include "gpsvelocitysensor.h"
    #include "pathdesired.h"
    #include "flightmodesettings.h"
    #include "flightstatus.h"
@@ -116,7 +115,7 @@ static int32_t uavoROSBridgeInitialize(void);
 static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
-static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gimbal_estimate_handler, flightcontrol_r_handler, posvel_estimate_r_handler;
+static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler;
 void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
 void RateCb(__attribute__((unused)) UAVObjEvent *ev);
 
@@ -196,8 +195,8 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
         case ROSBRIDGEMESSAGE_PING:
             ping_r_handler(m, message);
             break;
-        case ROSBRIDGEMESSAGE_POSVEL_ESTIMATE:
-            posvel_estimate_r_handler(m, message);
+        case ROSBRIDGEMESSAGE_POS_ESTIMATE:
+            pos_estimate_r_handler(m, message);
             break;
         case ROSBRIDGEMESSAGE_FLIGHTCONTROL:
             flightcontrol_r_handler(m, message);
@@ -293,7 +292,6 @@ static int32_t uavoROSBridgeInitialize(void)
 
             ROSBridgeStatusInitialize();
             AUXPositionSensorInitialize();
-            GPSVelocitySensorInitialize();
             HwSettingsInitialize();
             HwSettingsROSSpeedOptions rosSpeed;
             HwSettingsROSSpeedGet(&rosSpeed);
@@ -387,20 +385,15 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
     }
     PathDesiredSet(&pathDesired);
 }
-static void posvel_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
+static void pos_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
 {
-    rosbridgemessage_posvel_estimate_t *data = (rosbridgemessage_posvel_estimate_t *)&(m->data);
-    GPSVelocitySensorData vel;
+    rosbridgemessage_pos_estimate_t *data = (rosbridgemessage_pos_estimate_t *)&(m->data);
     AUXPositionSensorData pos;
 
     pos.North = data->position[0];
     pos.East  = data->position[1];
     pos.Down  = data->position[2];
-    vel.North = data->velocity[0];
-    vel.East  = data->velocity[1];
-    vel.Down  = data->velocity[2];
     AUXPositionSensorSet(&pos);
-    GPSVelocitySensorSet(&vel);
 }
 
 static void pong_handler(struct ros_bridge *rb, rosbridgemessage_t *m)

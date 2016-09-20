@@ -415,7 +415,6 @@ void PIOS_Board_Init(void)
     const struct pios_gpio_cfg *led_cfg  = PIOS_BOARD_HW_DEFS_GetLedCfg(bdinfo->board_rev);
     PIOS_Assert(led_cfg);
     PIOS_LED_Init(led_cfg);
-    PIOS_LED_On(PIOS_LED_TEST);
 #endif /* PIOS_INCLUDE_LED */
 
 #ifdef PIOS_INCLUDE_INSTRUMENTATION

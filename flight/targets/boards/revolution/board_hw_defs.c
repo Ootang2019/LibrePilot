@@ -56,19 +56,6 @@ static const struct pios_gpio pios_leds[] = {
         },
         .active_low         = true
     },
-    [PIOS_LED_TEST] =      {
-        .pin                =             {
-            .gpio = GPIOA,
-            .init =             {
-                .GPIO_Pin   = GPIO_Pin_0,
-                .GPIO_Speed = GPIO_Speed_50MHz,
-                .GPIO_Mode  = GPIO_Mode_OUT,
-                .GPIO_OType = GPIO_OType_PP,
-                .GPIO_PuPd  = GPIO_PuPd_NOPULL
-            },
-        },
-        .active_low         = false
-    },
 #ifdef PIOS_RFM22B_DEBUG_ON_TELEM
     [PIOS_LED_D1] =        {
         .pin                =             {
@@ -152,19 +139,6 @@ static const struct pios_gpio pios_leds_v2[] = {
             },
         },
         .active_low         = true
-    },
-    [PIOS_LED_TEST] =      {
-        .pin                =             {
-            .gpio = GPIOA,
-            .init =             {
-                .GPIO_Pin   = GPIO_Pin_0,
-                .GPIO_Speed = GPIO_Speed_50MHz,
-                .GPIO_Mode  = GPIO_Mode_OUT,
-                .GPIO_OType = GPIO_OType_PP,
-                .GPIO_PuPd  = GPIO_PuPd_NOPULL
-            },
-        },
-        .active_low         = false
     },
 #ifdef PIOS_RFM22B_DEBUG_ON_TELEM
     [PIOS_LED_D1] =        {
@@ -1873,7 +1847,7 @@ static const struct pios_tim_channel pios_tim_servoport_all_pins[] = {
         },
         .remap = GPIO_AF_TIM5,
     },
-/*    {
+    {
         .timer = TIM5,
         .timer_chan = TIM_Channel_1,
         .pin   = {
@@ -1888,7 +1862,7 @@ static const struct pios_tim_channel pios_tim_servoport_all_pins[] = {
             .pin_source     = GPIO_PinSource0,
         },
         .remap = GPIO_AF_TIM5,
-    },*/
+    },
     // PWM pins on FlexiIO(receiver) port
     {
         // * 6: PB15 = SPI2 MOSI, TIM12 CH2
@@ -1998,9 +1972,9 @@ static const struct pios_tim_channel pios_tim_servoport_all_pins[] = {
         .remap = GPIO_AF_TIM12,
     },
 };
-#define PIOS_SERVOPORT_ALL_PINS_PWMOUT        5
-#define PIOS_SERVOPORT_ALL_PINS_PWMOUT_IN_PPM 10
-#define PIOS_SERVOPORT_ALL_PINS_PWMOUT_IN     11
+#define PIOS_SERVOPORT_ALL_PINS_PWMOUT        6
+#define PIOS_SERVOPORT_ALL_PINS_PWMOUT_IN_PPM 11
+#define PIOS_SERVOPORT_ALL_PINS_PWMOUT_IN     12
 
 const struct pios_servo_cfg pios_servo_cfg_out = {
     .tim_oc_init          = {

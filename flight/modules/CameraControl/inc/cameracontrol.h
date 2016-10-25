@@ -1,13 +1,10 @@
 /**
  ******************************************************************************
- * @addtogroup PIOS PIOS Core hardware abstraction layer
- * @{
- * @addtogroup   PIOS_USB USB Functions
- * @{
  *
- * @file       pios_usb.h
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
- * @brief      USB HID layer functions header
+ * @file       cameracontrol.h
+ * @author     The LibrePilot Project, http://www.librepilot.org Copyright (C) 2016.
+ * @brief      camera control module. triggers cameras with multiple options
+ *
  * @see        The GNU Public License (GPL) Version 3
  *
  *****************************************************************************/
@@ -25,23 +22,15 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ * Additional note on redistribution: The copyright and license notices above
+ * must be maintained in each individual source file that is a derivative work
+ * of this source file; otherwise redistribution is prohibited.
  */
 
-#ifndef PIOS_USB_H
-#define PIOS_USB_H
+#ifndef FLIGHT_MODULES_CAMERACONTROL_INC_CAMERACONTROL_H
+#define FLIGHT_MODULES_CAMERACONTROL_INC_CAMERACONTROL_H
 
-#include <stdbool.h>
 
-/* Global functions */
-extern int32_t PIOS_USB_Reenumerate();
-extern int32_t PIOS_USB_ChangeConnectionState(bool connected);
-extern bool PIOS_USB_CableConnected(uint8_t id);
-extern bool PIOS_USB_CheckAvailable(uint32_t id);
-extern void PIOS_USB_RegisterDisconnectionCallback(void (*disconnectionCB)(void));
-extern void PIOS_USB_RegisterConnectionStateCallback(void (*connectionStateCallback)(bool connected, uint32_t context), uint32_t context);
-#endif /* PIOS_USB_H */
 
-/**
- * @}
- * @}
- */
+#endif /* FLIGHT_MODULES_CAMERACONTROL_INC_CAMERACONTROL_H */

@@ -13,6 +13,7 @@
 			<elementname>PathPlanner1</elementname>
 			<elementname>ManualControl</elementname>
 			<elementname>UAVOROSBridge</elementname>
+			<elementname>CameraControl</elementname>
 			<elementname>DebugLog</elementname>
 		</elementnames>
 	</field> 
@@ -28,6 +29,7 @@
 			<elementname>PathPlanner1</elementname>
 			<elementname>ManualControl</elementname>
 			<elementname>UAVOROSBridge</elementname>
+			<elementname>CameraControl</elementname>
 			<elementname>DebugLog</elementname>
 		</elementnames>
 		<options>
@@ -47,6 +49,7 @@
 			<elementname>PathPlanner1</elementname>
 			<elementname>ManualControl</elementname>
 			<elementname>UAVOROSBridge</elementname>
+			<elementname>CameraControl</elementname>
 			<elementname>DebugLog</elementname>
 		</elementnames>
 	</field> 

@@ -171,7 +171,9 @@ public:
         nav_msgs::Odometry odometry;
         geometry_msgs::PoseStamped pose;
 
-        // ATTENTION:  LibrePilot - like most outdoor platforms uses North-East-Down coordinate frame for all data
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - boost::posix_time::ptime(boost::gregorian::date(1970,1,1));
+        
+	// ATTENTION:  LibrePilot - like most outdoor platforms uses North-East-Down coordinate frame for all data
         // in body frame
         // x points forward
         // y points right
@@ -208,10 +210,10 @@ public:
             }
         }
         odometry.header.seq = sequence++;
-        odometry.header.stamp.sec  = (uint32_t)(message->timestamp / 1000000);
-        odometry.header.stamp.nsec = (uint32_t)1000 * (message->timestamp % 1000000);
-        odometry.header.frame_id   = "1";
-        odometry.child_frame_id    = "2";
+        odometry.header.stamp.sec  = diff.total_seconds();
+        odometry.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
+        odometry.header.frame_id   = "world";
+        odometry.child_frame_id    = "copter";
         pose.header = odometry.header;
         pose.pose   = odometry.pose.pose;
 

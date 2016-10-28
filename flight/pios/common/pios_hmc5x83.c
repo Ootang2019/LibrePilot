@@ -386,6 +386,11 @@ static void PIOS_HMC5x83_Orient(enum PIOS_HMC5X83_ORIENTATION orientation, int16
         out[1] = in[2];
         out[2] = in[1];
         break;
+    case PIOS_HMC5X83_ORIENTATION_D303:
+        out[0] = in[1];
+        out[1] = -in[0];
+        out[2] = in[2];
+        break;
     }
 }
 
@@ -501,7 +506,7 @@ static int32_t PIOS_HMC5x83_ReadMag_303(pios_hmc5x83_dev_data_t *dev, int16_t ou
         temp[i] = v;
     }
 
-    PIOS_HMC5x83_Orient(dev->cfg->Orientation, temp, out);
+    PIOS_HMC5x83_Orient(PIOS_HMC5X83_ORIENTATION_D303, temp, out);
 
     return 0;
 }

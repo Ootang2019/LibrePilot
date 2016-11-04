@@ -453,27 +453,27 @@ bool flightDataModel::writeToFile(QString fileName)
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->latPosition);
+        field.setAttribute("value", QString::number(obj->latPosition));
         field.setAttribute("name", "latitude");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->lngPosition);
+        field.setAttribute("value", QString::number(obj->lngPosition));
         field.setAttribute("name", "longitude");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->disRelative);
+        field.setAttribute("value", QString::number(obj->disRelative));
         field.setAttribute("name", "distance_to_home");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->beaRelative);
+        field.setAttribute("value", QString::number(obj->beaRelative));
         field.setAttribute("name", "bearing_from_home");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->altitudeRelative);
+        field.setAttribute("value", QString::number(obj->altitudeRelative));
         field.setAttribute("name", "altitude_above_home");
         waypoint.appendChild(field);
 
@@ -483,12 +483,12 @@ bool flightDataModel::writeToFile(QString fileName)
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->altitude);
+        field.setAttribute("value", QString::number(obj->altitude));
         field.setAttribute("name", "altitude");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->velocity);
+        field.setAttribute("value", QString::number(obj->velocity));
         field.setAttribute("name", "velocity");
         waypoint.appendChild(field);
 
@@ -498,22 +498,22 @@ bool flightDataModel::writeToFile(QString fileName)
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->mode_params[0]);
+        field.setAttribute("value", QString::number(obj->mode_params[0]));
         field.setAttribute("name", "mode_param0");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->mode_params[1]);
+        field.setAttribute("value", QString::number(obj->mode_params[1]));
         field.setAttribute("name", "mode_param1");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->mode_params[2]);
+        field.setAttribute("value", QString::number(obj->mode_params[2]));
         field.setAttribute("name", "mode_param2");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->mode_params[3]);
+        field.setAttribute("value", QString::number(obj->mode_params[3]));
         field.setAttribute("name", "mode_param3");
         waypoint.appendChild(field);
 
@@ -523,22 +523,22 @@ bool flightDataModel::writeToFile(QString fileName)
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->condition_params[0]);
+        field.setAttribute("value", QString::number(obj->condition_params[0]));
         field.setAttribute("name", "condition_param0");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->condition_params[1]);
+        field.setAttribute("value", QString::number(obj->condition_params[1]));
         field.setAttribute("name", "condition_param1");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->condition_params[2]);
+        field.setAttribute("value", QString::number(obj->condition_params[2]));
         field.setAttribute("name", "condition_param2");
         waypoint.appendChild(field);
 
         field = doc.createElement("field");
-        field.setAttribute("value", obj->condition_params[3]);
+        field.setAttribute("value", QString::number(obj->condition_params[3]));
         field.setAttribute("name", "condition_param3");
         waypoint.appendChild(field);
 

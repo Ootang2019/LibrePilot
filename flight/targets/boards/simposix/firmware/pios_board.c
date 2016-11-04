@@ -180,7 +180,7 @@ void PIOS_Board_Init(void)
         break;
 
     case HWSETTINGS_RV_GPSPORT_GPS:
-        PIOS_Board_configure_com(&pios_udp_gps_cfg, PIOS_COM_GPS_RX_BUF_LEN, -1, &pios_udp_com_driver, &pios_com_gps_id);
+        PIOS_Board_configure_com(&pios_udp_gps_cfg, PIOS_COM_GPS_RX_BUF_LEN, 0, &pios_udp_com_driver, &pios_com_gps_id);
         break;
 
     case HWSETTINGS_RV_GPSPORT_COMAUX:

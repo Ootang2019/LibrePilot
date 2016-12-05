@@ -171,9 +171,9 @@ public:
         nav_msgs::Odometry odometry;
         geometry_msgs::PoseStamped pose;
 
-        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - boost::posix_time::ptime(boost::gregorian::date(1970,1,1));
-        
-	// ATTENTION:  LibrePilot - like most outdoor platforms uses North-East-Down coordinate frame for all data
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
+
+        // ATTENTION:  LibrePilot - like most outdoor platforms uses North-East-Down coordinate frame for all data
         // in body frame
         // x points forward
         // y points right

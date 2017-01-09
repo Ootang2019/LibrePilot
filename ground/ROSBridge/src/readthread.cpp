@@ -35,6 +35,7 @@
 #include "std_msgs/String.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "nav_msgs/Odometry.h"
+#include "uav_msgs/uav_pose.h"
 #include <sstream>
 #include "boost/thread.hpp"
 #include "readthread.h"
@@ -170,6 +171,7 @@ public:
         rosbridgemessage_fullstate_estimate_t *data = (rosbridgemessage_fullstate_estimate_t *)message->data;
         nav_msgs::Odometry odometry;
         geometry_msgs::PoseStamped pose;
+	uav_msgs::uav_pose uavpose;
 
         boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
 
@@ -181,6 +183,24 @@ public:
         // this also goes for the quaternion
 
         // ROS uses the annozing east-north-up coordinate frame which means axis need to be swapped and signs inverted
+	
+	uavpose.position.x = data->position[0];
+	uavpose.position.y = data->position[1];
+	uavpose.position.z = data->position[2];
+	uavpose.velocity.x = data->velocity[0];
+	uavpose.velocity.y = data->velocity[1];
+	uavpose.velocity.z = data->velocity[2];
+	uavpose.orientation[0] = data->quaternion[1];
+	uavpose.orientation[1] = data->quaternion[2];
+	uavpose.orientation[2] = data->quaternion[3];
+	uavpose.orientation[3] = data->quaternion[0];
+	uavpose.rotation.x = data->rotation[0];
+	uavpose.rotation.y = data->rotation[1];
+	uavpose.rotation.z = data->rotation[2];
+	uavpose.thrust = data->thrust;
+	uavpose.flightmode = data->mode;
+// TODO: transfer and swap covariance matrix columns/rows
+
         odometry.pose.pose.position.y = data->position[0];
         odometry.pose.pose.position.x = data->position[1];
         odometry.pose.pose.position.z = -data->position[2];
@@ -215,6 +235,7 @@ public:
         odometry.header.frame_id   = "world";
         odometry.child_frame_id    = "copter";
         pose.header = odometry.header;
+	uavpose.header = odometry.header;
         pose.pose   = odometry.pose.pose;
 
         state_pub.publish(odometry);

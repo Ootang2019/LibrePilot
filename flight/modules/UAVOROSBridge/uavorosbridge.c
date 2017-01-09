@@ -37,6 +37,7 @@
 #include "hwsettings.h"
 #include "taskinfo.h"
 #include "callbackinfo.h"
+#include "insgps.h"
 /*
    #include "receiverstatus.h"
    #include "flightmodesettings.h"
@@ -427,11 +428,22 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
     data->rotation[0]   = ros->rateAccumulator[0];
     data->rotation[1]   = ros->rateAccumulator[1];
     data->rotation[2]   = ros->rateAccumulator[2];
+    int x,y;
+    float* P[13];
+    INSGetPAddress(P);
+    for (x=0;x<10;x++) {
+       for (y=0;y<10;y++) {
+          data->matrix[x*10+y]=P[x][y];
+       }
+    }
     if (ros->rateTimer >= 1) {
         float factor = 1.0f / (float)ros->rateTimer;
         data->rotation[0] *= factor;
         data->rotation[1] *= factor;
         data->rotation[2] *= factor;
+        ros->rateAccumulator[0] = 0;
+        ros->rateAccumulator[1] = 0;
+        ros->rateAccumulator[2] = 0;
         ros->rateTimer     = 0;
     }
 }

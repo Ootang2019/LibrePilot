@@ -190,6 +190,14 @@ void INSGetP(float PDiag[NUMX])
     }
 }
 
+void INSGetPAddress(float* address[NUMX])
+{
+    uint8_t i;
+    for (i=0;i<NUMX;i++) {
+        address[i]=ekf.P[i];
+    }
+}
+
 void INSSetState(float pos[3], float vel[3], float q[4], float gyro_bias[3], __attribute__((unused)) float accel_bias[3])
 {
     /* Note: accel_bias not used in 13 state INS */

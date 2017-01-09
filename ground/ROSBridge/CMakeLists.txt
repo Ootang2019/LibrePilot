@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   geometry_msgs
+  uav_msgs
   message_generation
 )
 find_package(Boost REQUIRED COMPONENTS thread
@@ -82,6 +83,7 @@ FILES
 generate_messages(
   DEPENDENCIES
   std_msgs
+  uav_msgs
   geometry_msgs
 )
 
@@ -118,7 +120,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES librepilot
-  CATKIN_DEPENDS roscpp std_msgs geometry_msgs message_runtime
+  CATKIN_DEPENDS roscpp std_msgs geometry_msgs uav_msgs message_runtime
 #  DEPENDS system_lib
 )
 

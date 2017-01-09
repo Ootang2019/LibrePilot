@@ -84,6 +84,9 @@ typedef struct {
     float position[3];
     float velocity[3];
     float rotation[3];
+    float thrust;
+    int32_t mode;
+    float matrix[100];
 } rosbridgemessage_fullstate_estimate_t;
 
 typedef struct {

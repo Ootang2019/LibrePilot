@@ -190,10 +190,10 @@ public:
 	uavpose.velocity.x = data->velocity[0];
 	uavpose.velocity.y = data->velocity[1];
 	uavpose.velocity.z = data->velocity[2];
-	uavpose.orientation[0] = data->quaternion[1];
-	uavpose.orientation[1] = data->quaternion[2];
-	uavpose.orientation[2] = data->quaternion[3];
-	uavpose.orientation[3] = data->quaternion[0];
+	uavpose.orientation.x = data->quaternion[1];
+	uavpose.orientation.y = data->quaternion[2];
+	uavpose.orientation.z = data->quaternion[3];
+	uavpose.orientation.w = data->quaternion[0];
 	uavpose.rotation.x = data->rotation[0];
 	uavpose.rotation.y = data->rotation[1];
 	uavpose.rotation.z = data->rotation[2];

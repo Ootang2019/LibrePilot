@@ -194,9 +194,9 @@ public:
 	uavpose.orientation.y = data->quaternion[2];
 	uavpose.orientation.z = data->quaternion[3];
 	uavpose.orientation.w = data->quaternion[0];
-	uavpose.rotation.x = data->rotation[0];
-	uavpose.rotation.y = data->rotation[1];
-	uavpose.rotation.z = data->rotation[2];
+	uavpose.angVelocity.x = data->rotation[0];
+	uavpose.angVelocity.y = data->rotation[1];
+	uavpose.angVelocity.z = data->rotation[2];
 	uavpose.thrust = data->thrust;
 	uavpose.flightmode = data->mode;
 // TODO: transfer and swap covariance matrix columns/rows

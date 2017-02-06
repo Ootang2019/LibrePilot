@@ -88,9 +88,9 @@ struct ros_bridge {
     uint8_t       remotePingSequence;
     PiOSDeltatimeConfig roundtrip;
     double        roundTripTime;
-    uint32_t      pingTimer;
-    uint32_t      stateTimer;
-    uint32_t      rateTimer;
+    int32_t      pingTimer;
+    int32_t      stateTimer;
+    int32_t      rateTimer;
     float         rateAccumulator[3];
     uint8_t       rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t        rx_length;
@@ -100,15 +100,11 @@ struct ros_bridge {
 #if defined(PIOS_ROS_STACK_SIZE)
 #define STACK_SIZE_BYTES  PIOS_ROS_STACK_SIZE
 #else
-#define STACK_SIZE_BYTES  768
+#define STACK_SIZE_BYTES  1024
 #endif
 #define TASK_PRIORITY     CALLBACK_TASK_AUXILIARY
 #define CALLBACK_PRIORITY CALLBACK_PRIORITY_REGULAR
 #define CBTASK_PRIORITY   CALLBACK_TASK_AUXILIARY
-
-#define PINGCOUNT         500
-#define STATECOUNT        10
-
 
 static bool module_enabled = false;
 static struct ros_bridge *ros;
@@ -475,8 +471,8 @@ static void uavoROSBridgeTxTask(void)
             message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
             int32_t ret = PIOS_COM_SendBufferNonBlocking(ros->com, buffer, offsetof(rosbridgemessage_t, data) + message->length);
             // int32_t ret = PIOS_COM_SendBuffer(ros->com, buffer, offsetof(rosbridgemessage_t, data) + message->length);
+            ros->scheduled[type] = false;
             if (ret >= 0) {
-                ros->scheduled[type] = false;
                 uint32_t txpackets;
                 ROSBridgeStatusTxPacketsGet(&txpackets);
                 txpackets++;
@@ -510,12 +506,12 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
 {
     bool dispatch = false;
 
-    if (ros->pingTimer++ > PINGCOUNT) {
+    if (ros->pingTimer++ > ROSBRIDGEMESSAGE_UPDATE_RATES[ROSBRIDGEMESSAGE_PING]) {
         ros->pingTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
     }
-    if (ros->stateTimer++ > STATECOUNT) {
+    if (ros->stateTimer++ >  ROSBRIDGEMESSAGE_UPDATE_RATES[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE]) {
         ros->stateTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE] = true;

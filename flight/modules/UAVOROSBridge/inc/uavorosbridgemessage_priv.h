@@ -80,13 +80,13 @@ typedef struct {
 } rosbridgemessage_gimbalcontrol_t;
 
 typedef struct {
-    float quaternion[4];
-    float position[3];
-    float velocity[3];
-    float rotation[3];
-    float thrust;
+    float   quaternion[4];
+    float   position[3];
+    float   velocity[3];
+    float   rotation[3];
+    float   thrust;
     int32_t mode;
-    float matrix[100];
+    float   matrix[100];
 } rosbridgemessage_fullstate_estimate_t;
 
 typedef struct {
@@ -107,7 +107,7 @@ static const int32_t ROSBRIDGEMESSAGE_UPDATE_RATES[ROSBRIDGEMESSAGE_END_ARRAY_SI
     -1, // flightcontrol
     -1, // gimbal_control -- all of the above are incoming messages from ROS
     -1, // pong -- not periodic but triggered
-    20, // fullstate_estimate
+    1, // fullstate_estimate
     -1, // imu_average -- not yet implemented
     -1, // gimbal_estimate -- not yet implemented
 };

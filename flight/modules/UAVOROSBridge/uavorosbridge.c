@@ -50,7 +50,6 @@
    #include "accessorydesired.h"
    #include "airspeedstate.h"
    #include "actuatorsettings.h"
-   #include "actuatordesired.h"
    #include "systemstats.h"
    #include "systemalarms.h"
    #include "takeofflocation.h"
@@ -63,6 +62,7 @@
    #include "stabilizationsettingsbank3.h"
    #include "magstate.h"
  */
+   #include "actuatordesired.h"
    #include "auxpositionsensor.h"
    #include "pathdesired.h"
    #include "flightmodesettings.h"
@@ -88,9 +88,9 @@ struct ros_bridge {
     uint8_t       remotePingSequence;
     PiOSDeltatimeConfig roundtrip;
     double        roundTripTime;
-    int32_t      pingTimer;
-    int32_t      stateTimer;
-    int32_t      rateTimer;
+    int32_t       pingTimer;
+    int32_t       stateTimer;
+    int32_t       rateTimer;
     float         rateAccumulator[3];
     uint8_t       rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t        rx_length;
@@ -303,6 +303,7 @@ static int32_t uavoROSBridgeInitialize(void)
             GyroStateConnectCallback(&RateCb);
             FlightStatusInitialize();
             PathDesiredInitialize();
+            ActuatorDesiredInitialize();
             FlightModeSettingsInitialize();
 
             module_enabled = true;
@@ -406,7 +407,11 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
     PositionStateData pos;
     VelocityStateData vel;
     AttitudeStateData att;
+    FlightStatusFlightModeOptions mode;
+    float thrust;
 
+    FlightStatusFlightModeGet(&mode);
+    ActuatorDesiredThrustGet(&thrust);
     PositionStateGet(&pos);
     VelocityStateGet(&vel);
     AttitudeStateGet(&att);
@@ -424,13 +429,20 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
     data->rotation[0]   = ros->rateAccumulator[0];
     data->rotation[1]   = ros->rateAccumulator[1];
     data->rotation[2]   = ros->rateAccumulator[2];
-    int x,y;
-    float* P[13];
+    if (mode != FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
+        data->mode = 1;
+    } else {
+        data->mode = 0;
+    }
+    data->thrust = thrust;
+
+    int x, y;
+    float *P[13];
     INSGetPAddress(P);
-    for (x=0;x<10;x++) {
-       for (y=0;y<10;y++) {
-          data->matrix[x*10+y]=P[x][y];
-       }
+    for (x = 0; x < 10; x++) {
+        for (y = 0; y < 10; y++) {
+            data->matrix[x * 10 + y] = P[x][y];
+        }
     }
     if (ros->rateTimer >= 1) {
         float factor = 1.0f / (float)ros->rateTimer;
@@ -440,7 +452,7 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
         ros->rateAccumulator[0] = 0;
         ros->rateAccumulator[1] = 0;
         ros->rateAccumulator[2] = 0;
-        ros->rateTimer     = 0;
+        ros->rateTimer = 0;
     }
 }
 static void imu_average_handler(__attribute__((unused)) struct ros_bridge *rb, __attribute__((unused)) rosbridgemessage_t *m)
@@ -463,12 +475,12 @@ static void uavoROSBridgeTxTask(void)
 
     for (rosbridgemessagetype_t type = ROSBRIDGEMESSAGE_PING; type < ROSBRIDGEMESSAGE_END_ARRAY_SIZE; type++) {
         if (ros->scheduled[type] && rosbridgemessagehandlers[type] != NULL) {
-            message->magic     = ROSBRIDGEMAGIC;
-            message->length    = ROSBRIDGEMESSAGE_SIZES[type];
-            message->type      = type;
-            message->timestamp = PIOS_DELAY_GetuS();
+            message->magic       = ROSBRIDGEMAGIC;
+            message->length      = ROSBRIDGEMESSAGE_SIZES[type];
+            message->type        = type;
+            message->timestamp   = PIOS_DELAY_GetuS();
             (*rosbridgemessagehandlers[type])(ros, message);
-            message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
+            message->crc32       = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
             int32_t ret = PIOS_COM_SendBufferNonBlocking(ros->com, buffer, offsetof(rosbridgemessage_t, data) + message->length);
             // int32_t ret = PIOS_COM_SendBuffer(ros->com, buffer, offsetof(rosbridgemessage_t, data) + message->length);
             ros->scheduled[type] = false;
@@ -511,7 +523,7 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
     }
-    if (ros->stateTimer++ >  ROSBRIDGEMESSAGE_UPDATE_RATES[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE]) {
+    if (ros->stateTimer++ > ROSBRIDGEMESSAGE_UPDATE_RATES[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE]) {
         ros->stateTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE] = true;

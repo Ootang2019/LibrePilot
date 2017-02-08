@@ -52,7 +52,7 @@ public:
     uint8_t rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t rx_length;
     rosbridge *parent;
-    ros::Publisher state_pub, state2_pub;
+    ros::Publisher state_pub, state2_pub, state3_pub;
     uint32_t sequence;
 
 
@@ -171,7 +171,7 @@ public:
         rosbridgemessage_fullstate_estimate_t *data = (rosbridgemessage_fullstate_estimate_t *)message->data;
         nav_msgs::Odometry odometry;
         geometry_msgs::PoseStamped pose;
-	uav_msgs::uav_pose uavpose;
+        uav_msgs::uav_pose uavpose;
 
         boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
 
@@ -183,23 +183,25 @@ public:
         // this also goes for the quaternion
 
         // ROS uses the annozing east-north-up coordinate frame which means axis need to be swapped and signs inverted
-	
-	uavpose.position.x = data->position[0];
-	uavpose.position.y = data->position[1];
-	uavpose.position.z = data->position[2];
-	uavpose.velocity.x = data->velocity[0];
-	uavpose.velocity.y = data->velocity[1];
-	uavpose.velocity.z = data->velocity[2];
-	uavpose.orientation.x = data->quaternion[1];
-	uavpose.orientation.y = data->quaternion[2];
-	uavpose.orientation.z = data->quaternion[3];
-	uavpose.orientation.w = data->quaternion[0];
-	uavpose.angVelocity.x = data->rotation[0];
-	uavpose.angVelocity.y = data->rotation[1];
-	uavpose.angVelocity.z = data->rotation[2];
-	uavpose.thrust = data->thrust;
-	uavpose.flightmode = data->mode;
-// TODO: transfer and swap covariance matrix columns/rows
+
+        uavpose.position.x    = data->position[0];
+        uavpose.position.y    = data->position[1];
+        uavpose.position.z    = data->position[2];
+        uavpose.velocity.x    = data->velocity[0];
+        uavpose.velocity.y    = data->velocity[1];
+        uavpose.velocity.z    = data->velocity[2];
+        uavpose.orientation.x = data->quaternion[1];
+        uavpose.orientation.y = data->quaternion[2];
+        uavpose.orientation.z = data->quaternion[3];
+        uavpose.orientation.w = data->quaternion[0];
+        uavpose.angVelocity.x = data->rotation[0];
+        uavpose.angVelocity.y = data->rotation[1];
+        uavpose.angVelocity.z = data->rotation[2];
+        uavpose.thrust = data->thrust;
+        uavpose.flightmode    = data->mode;
+        for (int t = 0; t < 100; t++) {
+            uavpose.covariance[t] = data->matrix[t];
+        }
 
         odometry.pose.pose.position.y = data->position[0];
         odometry.pose.pose.position.x = data->position[1];
@@ -214,9 +216,9 @@ public:
         odometry.twist.twist.linear.y  = data->velocity[0];
         odometry.twist.twist.linear.x  = data->velocity[1];
         odometry.twist.twist.linear.z  = -data->velocity[2];
-        odometry.twist.twist.angular.y = data->velocity[0];
-        odometry.twist.twist.angular.x = data->velocity[1];
-        odometry.twist.twist.angular.z = -data->velocity[2];
+        odometry.twist.twist.angular.y = data->rotation[0];
+        odometry.twist.twist.angular.x = data->rotation[1];
+        odometry.twist.twist.angular.z = -data->rotation[2];
         // FAKE covariance -- LibrePilot does have a covariance matrix, but its 13x13 and not trivially comparable
         // also ROS documentation on how the covariance is encoded into this double[36] (ro wvs col major, order of members, ...)
         // is very lacing
@@ -234,12 +236,13 @@ public:
         odometry.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
         odometry.header.frame_id   = "world";
         odometry.child_frame_id    = "copter";
-        pose.header = odometry.header;
-	uavpose.header = odometry.header;
-        pose.pose   = odometry.pose.pose;
+        pose.header    = odometry.header;
+        uavpose.header = odometry.header;
+        pose.pose = odometry.pose.pose;
 
         state_pub.publish(odometry);
         state2_pub.publish(pose);
+        state3_pub.publish(uavpose);
         parent->rosinfoPrint("state published");
     }
 
@@ -274,14 +277,17 @@ public:
         rx_length  = 0;
         state_pub  = nodehandle->advertise<nav_msgs::Odometry>("Octocopter", 10);
         state2_pub = nodehandle->advertise<geometry_msgs::PoseStamped>("octoPose", 10);
+        state3_pub = nodehandle->advertise<uav_msgs::uav_pose>("UAVPose", 1000);
         while (ros::ok()) {
             boost::asio::read(*port, boost::asio::buffer(&c, 1));
             ros_receive_byte(c);
+/*
             std_msgs::String msg;
             std::stringstream bla;
             bla << std::hex << (unsigned short)c;
             msg.data = bla.str();
             parent->rosinfoPrint(msg.data.c_str());
+ */
             // chatter_pub.publish(msg);
         }
     }

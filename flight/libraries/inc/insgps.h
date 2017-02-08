@@ -60,7 +60,7 @@ void INSCorrection(float mag_data[3], float Pos[3], float Vel[3], float BaroAlt,
 
 void INSResetP(float PDiag[13]);
 void INSGetP(float PDiag[13]);
-void INSGetPAddress(float* address[13]);
+void INSGetPAddress(float *address[13]);
 void INSSetState(float pos[3], float vel[3], float q[4], float gyro_bias[3], float accel_bias[3]);
 void INSSetPosVelVar(float PosVar[3], float VelVar[3]);
 void INSSetGyroBias(float gyro_bias[3]);

@@ -429,7 +429,7 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
     data->rotation[0]   = ros->rateAccumulator[0];
     data->rotation[1]   = ros->rateAccumulator[1];
     data->rotation[2]   = ros->rateAccumulator[2];
-    if (mode != FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
+    if (mode == FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
         data->mode = 1;
     } else {
         data->mode = 0;

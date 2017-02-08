@@ -190,11 +190,12 @@ void INSGetP(float PDiag[NUMX])
     }
 }
 
-void INSGetPAddress(float* address[NUMX])
+void INSGetPAddress(float *address[NUMX])
 {
     uint8_t i;
-    for (i=0;i<NUMX;i++) {
-        address[i]=ekf.P[i];
+
+    for (i = 0; i < NUMX; i++) {
+        address[i] = ekf.P[i];
     }
 }
 

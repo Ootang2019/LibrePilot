@@ -1,0 +1,11 @@
+<xml>
+    <object name="ROSBridgeSettings" singleinstance="true" settings="true" category="System">
+        <description>ROSBridge Settings</description>
+        <field name="UpdateRate" units="updates" type="uint16" elementnames="Ping,State" defaultvalue="500,5" />
+
+        <access gcs="readwrite" flight="readwrite"/>
+        <telemetrygcs acked="true" updatemode="onchange" period="0"/>
+        <telemetryflight acked="true" updatemode="onchange" period="0"/>
+        <logging updatemode="manual" period="0"/>
+    </object>
+</xml>

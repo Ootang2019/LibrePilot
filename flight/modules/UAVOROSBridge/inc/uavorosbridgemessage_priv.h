@@ -101,17 +101,6 @@ typedef struct {
     float qvar[4];
 } rosbridgemessage_gimbal_estimate_t;
 
-static const int32_t ROSBRIDGEMESSAGE_UPDATE_RATES[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
-    500, // ping
-    -1, // pos estimate
-    -1, // flightcontrol
-    -1, // gimbal_control -- all of the above are incoming messages from ROS
-    -1, // pong -- not periodic but triggered
-    1, // fullstate_estimate
-    -1, // imu_average -- not yet implemented
-    -1, // gimbal_estimate -- not yet implemented
-};
-
 static const size_t ROSBRIDGEMESSAGE_SIZES[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     sizeof(rosbridgemessage_pingpong_t),
     sizeof(rosbridgemessage_pos_estimate_t),

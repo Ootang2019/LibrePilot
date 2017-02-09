@@ -62,15 +62,17 @@
    #include "stabilizationsettingsbank3.h"
    #include "magstate.h"
  */
-   #include "actuatordesired.h"
-   #include "auxpositionsensor.h"
-   #include "pathdesired.h"
-   #include "flightmodesettings.h"
-   #include "flightstatus.h"
-   #include "positionstate.h"
-   #include "velocitystate.h"
-   #include "attitudestate.h"
-   #include "gyrostate.h"
+
+#include "actuatordesired.h"
+#include "auxpositionsensor.h"
+#include "pathdesired.h"
+#include "flightmodesettings.h"
+#include "flightstatus.h"
+#include "positionstate.h"
+#include "velocitystate.h"
+#include "attitudestate.h"
+#include "gyrostate.h"
+#include "rosbridgesettings.h"
 #include "rosbridgestatus.h"
 #include "objectpersistence.h"
 
@@ -113,7 +115,9 @@ static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
 static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler;
+static ROSBridgeSettingsUpdateRateData currentUpdateRates;
 void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
+void SettingsCb(__attribute__((unused)) UAVObjEvent *ev);
 void RateCb(__attribute__((unused)) UAVObjEvent *ev);
 
 static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
@@ -287,6 +291,9 @@ static int32_t uavoROSBridgeInitialize(void)
 
             ros->com = PIOS_COM_ROS;
 
+            ROSBridgeSettingsInitialize();
+            ROSBridgeSettingsConnectCallback(&SettingsCb);
+            SettingsCb(NULL);
             ROSBridgeStatusInitialize();
             AUXPositionSensorInitialize();
             HwSettingsInitialize();
@@ -518,12 +525,12 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
 {
     bool dispatch = false;
 
-    if (ros->pingTimer++ > ROSBRIDGEMESSAGE_UPDATE_RATES[ROSBRIDGEMESSAGE_PING]) {
+    if (ros->pingTimer++ > currentUpdateRates.Ping) {
         ros->pingTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
     }
-    if (ros->stateTimer++ > ROSBRIDGEMESSAGE_UPDATE_RATES[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE]) {
+    if (ros->stateTimer++ > currentUpdateRates.State) {
         ros->stateTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE] = true;
@@ -531,6 +538,14 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
     if (dispatch && callbackHandle) {
         PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
     }
+}
+
+/**
+ * Event Callback on Settings
+ */
+void SettingsCb(__attribute__((unused)) UAVObjEvent *ev)
+{
+    ROSBridgeSettingsUpdateRateGet(&currentUpdateRates);
 }
 
 /**

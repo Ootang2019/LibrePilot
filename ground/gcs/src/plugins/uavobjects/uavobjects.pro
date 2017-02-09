@@ -127,6 +127,7 @@ UAVOBJS = \
     $${UAVOBJ_XML_DIR}/receiverstatus.xml \
     $${UAVOBJ_XML_DIR}/revocalibration.xml \
     $${UAVOBJ_XML_DIR}/revosettings.xml \
+    $${UAVOBJ_XML_DIR}/rosbridgesettings.xml \
     $${UAVOBJ_XML_DIR}/rosbridgestatus.xml \
     $${UAVOBJ_XML_DIR}/auxpositionsensor.xml \
     $${UAVOBJ_XML_DIR}/sonaraltitude.xml \

@@ -103,7 +103,7 @@ struct ros_bridge {
 #if defined(PIOS_ROS_STACK_SIZE)
 #define STACK_SIZE_BYTES  PIOS_ROS_STACK_SIZE
 #else
-#define STACK_SIZE_BYTES  1024
+#define STACK_SIZE_BYTES  2048
 #endif
 #define TASK_PRIORITY     CALLBACK_TASK_AUXILIARY
 #define CALLBACK_PRIORITY CALLBACK_PRIORITY_REGULAR
@@ -153,27 +153,23 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
         }
         if ((message->magic & canary) != (ROSBRIDGEMAGIC & canary)) {
             // parse error, not beginning of message
-            m->rx_length = 0;
-            return;
+            goto rxfailure;
         }
     }
     if (m->rx_length == offsetof(rosbridgemessage_t, timestamp)) {
         if (message->length > (uint32_t)(ROSBRIDGEMESSAGE_BUFFERSIZE - offsetof(rosbridgemessage_t, data))) {
             // parse error, no messages are that long
-            m->rx_length = 0;
-            return;
+            goto rxfailure;
         }
     }
     if (m->rx_length == offsetof(rosbridgemessage_t, crc32)) {
         if (message->type >= ROSBRIDGEMESSAGE_END_ARRAY_SIZE) {
             // parse error
-            m->rx_length = 0;
-            return;
+            goto rxfailure;
         }
         if (message->length != ROSBRIDGEMESSAGE_SIZES[message->type]) {
             // parse error
-            m->rx_length = 0;
-            return;
+            goto rxfailure;
         }
     }
     if (m->rx_length < offsetof(rosbridgemessage_t, data)) {
@@ -187,7 +183,7 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
 
         if (PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length) != message->crc32) {
             // crc mismatch
-            return;
+            goto rxfailure;
         }
         uint32_t rxpackets;
         ROSBridgeStatusRxPacketsGet(&rxpackets);
@@ -214,6 +210,14 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
             break;
         }
     }
+    return;
+
+rxfailure:
+    m->rx_length = 0;
+    uint32_t rxfail;
+    ROSBridgeStatusRxFailGet(&rxfail);
+    rxfail++;
+    ROSBridgeStatusRxFailSet(&rxfail);
 }
 
 static uint32_t hwsettings_rosspeed_enum_to_baud(uint8_t baud)
@@ -513,6 +517,11 @@ static void uavoROSBridgeTxTask(void)
                 ROSBridgeStatusTxPacketsGet(&txpackets);
                 txpackets++;
                 ROSBridgeStatusTxPacketsSet(&txpackets);
+            } else {
+                uint32_t txfail;
+                ROSBridgeStatusTxFailGet(&txfail);
+                txfail++;
+                ROSBridgeStatusTxFailSet(&txfail);
             }
             PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
             return;

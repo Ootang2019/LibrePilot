@@ -5,6 +5,8 @@
 	 
         <field name="TxPackets" units="count" type="uint32" elements="1"/>
         <field name="RxPackets" units="count" type="uint32" elements="1"/>
+        <field name="TxFail" units="count" type="uint32" elements="1"/>
+        <field name="RxFail" units="count" type="uint32" elements="1"/>
         <field name="PingRoundTripTime" units="seconds" type="float" elements="1"/>
         
         <access gcs="readwrite" flight="readwrite"/>

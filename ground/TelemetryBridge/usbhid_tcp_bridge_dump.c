@@ -25,7 +25,7 @@
 //
 
 
-#define BUF_SIZE 256
+#define BUF_SIZE 16384
 unsigned char tcp2usbBUF[BUF_SIZE];
 unsigned char usb2tcpBUF[BUF_SIZE];
 volatile int tcp2usbFILL;
@@ -121,6 +121,18 @@ int opsend(usb_dev_handle *device, int endpoint, void *buf, int size, int timeou
     return oprealsend(device, endpoint, buf, size, timeout);
 }
 
+int tcpsend(int client_sock, void *buf, int size)
+{
+    while (size > 62) {
+        if (send(client_sock, buf, 62, 0) < 0) {
+            return -1;
+        }
+        size -= 62;
+        buf  += 62;
+    }
+    return send(client_sock, buf, size, 0);
+}
+
 int64_t timeDifference(struct timeval *old, struct timeval *new)
 {
     time_t seconds;
@@ -156,6 +168,7 @@ void *listener(void *unused)
             write_buf(buffer, n, tcp2usbBUF, &tcp2usbFILL);
             pthread_cond_broadcast(&tcp2usbSEM);
             pthread_mutex_unlock(&tcp2usbMUTEX);
+            fprintf(stderr, "+");
         }
         close(client_sock);
         client_sock = 0;
@@ -172,9 +185,11 @@ void *tcpwriter(void *unused)
     pthread_mutex_lock(&usb2tcpMUTEX);
     while (pthread_cond_wait(&usb2tcpSEM, &usb2tcpMUTEX) == 0) {
         if (client_sock) {
-            unsigned char buffer[64];
+            unsigned char buffer[BUF_SIZE];
             int len = read_buf(buffer, usb2tcpBUF, &usb2tcpFILL);
-            send(client_sock, buffer, len, 0);
+            if (tcpsend(client_sock, buffer, len) < 0) {
+                fprintf(stderr, "FAIL!!!!! TCP Write Error!!!\n");
+            }
         }
     }
     fprintf(stderr, "FAIL!!!!!!! EXITUS\n");
@@ -183,9 +198,11 @@ void *usbwriter(void *unused)
 {
     pthread_mutex_lock(&tcp2usbMUTEX);
     while (pthread_cond_wait(&tcp2usbSEM, &tcp2usbMUTEX) == 0) {
-        unsigned char buffer[64];
+        unsigned char buffer[BUF_SIZE];
         int len = read_buf(buffer, tcp2usbBUF, &tcp2usbFILL);
-        opsend(OpenPilot, ep_out, buffer, len, 1000);
+        if (opsend(OpenPilot, ep_out, buffer, len, 1000) < 0) {
+            fprintf(stderr, "FAIL!!!!! TCP Write Error!!!\n");
+        }
     }
     fprintf(stderr, "FAIL!!!!!!! EXITUS\n");
 }
@@ -403,7 +420,8 @@ int main()
                 fwrite((uint8_t *)&timestamp, sizeof(timestamp), 1, stdout);
                 fwrite((uint8_t *)&dataSize, sizeof(dataSize), 1, stdout);
                 fwrite(buffer, 1, dataSize, stdout);
-                fprintf(stderr, " %i: %i\n", timestamp, (uint32_t)dataSize);
+                // fprintf(stderr, " %i: %i\n", timestamp, (uint32_t)dataSize);
+                fprintf(stderr, ".");
             }
             fprintf(stderr, "aborting: %s\n", strerror(-n));
         }

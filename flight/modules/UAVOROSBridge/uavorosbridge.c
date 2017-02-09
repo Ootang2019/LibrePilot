@@ -551,12 +551,12 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
 {
     bool dispatch = false;
 
-    if (ros->pingTimer++ > currentUpdateRates.Ping) {
+    if (++ros->pingTimer >= currentUpdateRates.Ping && currentUpdateRates.Ping > 0) {
         ros->pingTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
     }
-    if (ros->stateTimer++ > currentUpdateRates.State) {
+    if (++ros->stateTimer >= currentUpdateRates.State && currentUpdateRates.State > 0) {
         ros->stateTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE] = true;

@@ -36,6 +36,7 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "nav_msgs/Odometry.h"
 #include "uav_msgs/uav_pose.h"
+#include "librepilot/TransmitterInfo.h"
 #include <sstream>
 #include "boost/thread.hpp"
 #include "readthread.h"
@@ -52,7 +53,7 @@ public:
     uint8_t rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t rx_length;
     rosbridge *parent;
-    ros::Publisher state_pub, state2_pub, state3_pub;
+    ros::Publisher state_pub, state2_pub, state3_pub, state4_pub;
     uint32_t sequence;
 
 
@@ -172,6 +173,7 @@ public:
         nav_msgs::Odometry odometry;
         geometry_msgs::PoseStamped pose;
         uav_msgs::uav_pose uavpose;
+        librepilot::TransmitterInfo transmitter;
 
         boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
 
@@ -182,7 +184,6 @@ public:
         // z points down
         // this also goes for the quaternion
 
-        // ROS uses the annozing east-north-up coordinate frame which means axis need to be swapped and signs inverted
 
         uavpose.position.x    = data->position[0];
         uavpose.position.y    = data->position[1];
@@ -198,11 +199,26 @@ public:
         uavpose.angVelocity.y = data->rotation[1];
         uavpose.angVelocity.z = data->rotation[2];
         uavpose.thrust = data->thrust;
-        uavpose.flightmode    = data->mode;
+        uavpose.flightmode    = data->ROSControlled;
         for (int t = 0; t < 100; t++) {
             uavpose.covariance[t] = data->matrix[t];
         }
 
+        transmitter.ROSControlled    = data->ROSControlled;
+        transmitter.Armed = data->armed;
+        transmitter.FlightModeSwitch = data->FlightMode;
+        transmitter.Roll         = data->controls[0];
+        transmitter.Pitch        = data->controls[1];
+        transmitter.Yaw          = data->controls[2];
+        transmitter.Thrust       = data->controls[3];
+        transmitter.Collective   = data->controls[4];
+        transmitter.Throttle     = data->controls[5];
+        transmitter.Accessory[0] = data->accessory[0];
+        transmitter.Accessory[1] = data->accessory[1];
+        transmitter.Accessory[2] = data->accessory[2];
+        transmitter.Accessory[3] = data->accessory[3];
+
+        // ROS uses the annozing east-north-up coordinate frame which means axis need to be swapped and signs inverted
         odometry.pose.pose.position.y = data->position[0];
         odometry.pose.pose.position.x = data->position[1];
         odometry.pose.pose.position.z = -data->position[2];
@@ -236,13 +252,15 @@ public:
         odometry.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
         odometry.header.frame_id   = "world";
         odometry.child_frame_id    = "copter";
-        pose.header    = odometry.header;
-        uavpose.header = odometry.header;
+        pose.header        = odometry.header;
+        uavpose.header     = odometry.header;
+        transmitter.header = odometry.header;
         pose.pose = odometry.pose.pose;
 
         state_pub.publish(odometry);
         state2_pub.publish(pose);
         state3_pub.publish(uavpose);
+        state4_pub.publish(transmitter);
         parent->rosinfoPrint("state published");
     }
 
@@ -277,7 +295,8 @@ public:
         rx_length  = 0;
         state_pub  = nodehandle->advertise<nav_msgs::Odometry>("Octocopter", 10);
         state2_pub = nodehandle->advertise<geometry_msgs::PoseStamped>("octoPose", 10);
-        state3_pub = nodehandle->advertise<uav_msgs::uav_pose>("UAVPose", 1000);
+        state3_pub = nodehandle->advertise<uav_msgs::uav_pose>("UAVPose", 10);
+        state4_pub = nodehandle->advertise<librepilot::TransmitterInfo>("TransmitterInfo", 10);
         while (ros::ok()) {
             boost::asio::read(*port, boost::asio::buffer(&c, 1));
             ros_receive_byte(c);

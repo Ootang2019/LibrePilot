@@ -56,6 +56,7 @@ add_message_files(
 DIRECTORY
 msg
 FILES
+TransmitterInfo.msg
 #LPStateEstimate.msg
 #LPPing.msg
 )

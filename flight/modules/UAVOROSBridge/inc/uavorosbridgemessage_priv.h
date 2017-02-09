@@ -85,7 +85,8 @@ typedef struct {
     float   velocity[3];
     float   rotation[3];
     float   thrust;
-    int32_t mode;
+    int32_t ROSControlled;
+    int32_t FlightMode;
     int32_t armed;
     float   controls[6];
     float   accessory[4];

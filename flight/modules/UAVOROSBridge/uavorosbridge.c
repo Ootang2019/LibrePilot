@@ -44,7 +44,6 @@
    #include "flightbatterysettings.h"
    #include "flightbatterystate.h"
    #include "gpspositionsensor.h"
-   #include "manualcontrolcommand.h"
    #include "manualcontrolsettings.h"
    #include "oplinkstatus.h"
    #include "accessorydesired.h"
@@ -63,6 +62,8 @@
    #include "magstate.h"
  */
 
+#include "manualcontrolcommand.h"
+#include "accessorydesired.h"
 #include "actuatordesired.h"
 #include "auxpositionsensor.h"
 #include "pathdesired.h"
@@ -312,6 +313,8 @@ static int32_t uavoROSBridgeInitialize(void)
             PathDesiredInitialize();
             ActuatorDesiredInitialize();
             FlightModeSettingsInitialize();
+            ManualControlCommandInitialize();
+            AccessoryDesiredInitialize();
 
             module_enabled = true;
             return 0;
@@ -415,8 +418,13 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
     VelocityStateData vel;
     AttitudeStateData att;
     FlightStatusFlightModeOptions mode;
+    FlightStatusArmedOptions armed;
     float thrust;
+    AccessoryDesiredData accessory;
+    ManualControlCommandData manualcontrol;
 
+    ManualControlCommandGet(&manualcontrol);
+    FlightStatusArmedGet(&armed);
     FlightStatusFlightModeGet(&mode);
     ActuatorDesiredThrustGet(&thrust);
     PositionStateGet(&pos);
@@ -436,12 +444,24 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
     data->rotation[0]   = ros->rateAccumulator[0];
     data->rotation[1]   = ros->rateAccumulator[1];
     data->rotation[2]   = ros->rateAccumulator[2];
+    data->thrust = thrust;
     if (mode == FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
         data->mode = 1;
     } else {
         data->mode = 0;
     }
-    data->thrust = thrust;
+    data->armed = (armed == FLIGHTSTATUS_ARMED_ARMED) ? 1 : 0;
+    data->controls[0] = manualcontrol.Roll;
+    data->controls[1] = manualcontrol.Pitch;
+    data->controls[2] = manualcontrol.Yaw;
+    data->controls[3] = manualcontrol.Thrust;
+    data->controls[4] = manualcontrol.Collective;
+    data->controls[5] = manualcontrol.Throttle;
+    for (int t = 0; t < 4; t++) {
+        if (AccessoryDesiredInstGet(t, &accessory) == 0) {
+            data->accessory[t] = accessory.AccessoryVal;
+        }
+    }
 
     int x, y;
     float *P[13];

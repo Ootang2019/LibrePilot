@@ -37,6 +37,7 @@
 #define MK_I2C_ADDR     (0x52 >> 1)
 #define ASTEC4_I2C_ADDR 0x02
 #define MK_MAX_ENGINES  12
+#define MK_STEP_SETTING 3
 
 int32_t PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed);
 
@@ -101,9 +102,17 @@ bool PIOS_I2C_ESC_SetSpeed(uint8_t speed[4])
 int32_t PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed)
 {
     // static uint8_t speeds[8] = { 0 };
+    static uint8_t step[MK_MAX_ENGINES] = { 0 };
 
     if (motornum >= MK_MAX_ENGINES) {
-        return false;
+        return -1;
+    }
+
+    // do not update MK controllers every step, as I2C bus is too slow for 500Hz update rate at 50 kbit
+    if (step[motornum]++<MK_STEP_SETTING) {
+        return 0;
+    } else {
+        step[motornum]=0;
     }
 
     // if (speeds[motornum] == speed) {

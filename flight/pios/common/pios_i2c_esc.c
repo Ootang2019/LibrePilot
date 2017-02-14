@@ -109,10 +109,10 @@ int32_t PIOS_SetMKSpeed(uint8_t motornum, uint8_t speed)
     }
 
     // do not update MK controllers every step, as I2C bus is too slow for 500Hz update rate at 50 kbit
-    if (step[motornum]++<MK_STEP_SETTING) {
+    if (step[motornum]++ < MK_STEP_SETTING) {
         return 0;
     } else {
-        step[motornum]=0;
+        step[motornum] = 0;
     }
 
     // if (speeds[motornum] == speed) {

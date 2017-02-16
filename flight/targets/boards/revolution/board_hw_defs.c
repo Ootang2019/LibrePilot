@@ -1514,7 +1514,7 @@ static const struct pios_i2c_adapter_cfg pios_i2c_flexiport_adapter_cfg = {
         .I2C_Ack  = I2C_Ack_Enable,
         .I2C_AcknowledgedAddress               = I2C_AcknowledgedAddress_7bit,
         .I2C_DutyCycle                         = I2C_DutyCycle_2,
-        .I2C_ClockSpeed                        = 50000,                       /* bits/s */
+        .I2C_ClockSpeed                        = 100000,                      /* bits/s */
     },
     .transfer_timeout_ms                       = 50,
     .scl                                       = {

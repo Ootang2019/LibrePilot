@@ -117,7 +117,7 @@ static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
 static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler;
-static ROSBridgeSettingsUpdateRateData currentUpdateRates;
+static ROSBridgeSettingsData settings;
 void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
 void SettingsCb(__attribute__((unused)) UAVObjEvent *ev);
 void RateCb(__attribute__((unused)) UAVObjEvent *ev);
@@ -376,9 +376,9 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
     {
         FlightModeSettingsPositionHoldOffsetData offset;
         FlightModeSettingsPositionHoldOffsetGet(&offset);
-        pathDesired.End.North        = data->control[0];
-        pathDesired.End.East         = data->control[1];
-        pathDesired.End.Down         = data->control[2];
+        pathDesired.End.North        = boundf(data->control[0], settings.GeoFenceBoxMin.North, settings.GeoFenceBoxMax.North);
+        pathDesired.End.East         = boundf(data->control[1], settings.GeoFenceBoxMin.East, settings.GeoFenceBoxMax.East);
+        pathDesired.End.Down         = boundf(data->control[2], settings.GeoFenceBoxMin.Down, settings.GeoFenceBoxMax.Down);
         pathDesired.Start.North      = pathDesired.End.North + offset.Horizontal;
         pathDesired.Start.East       = pathDesired.End.East;
         pathDesired.Start.Down       = pathDesired.End.Down;
@@ -559,12 +559,12 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
 {
     bool dispatch = false;
 
-    if (++ros->pingTimer >= currentUpdateRates.Ping && currentUpdateRates.Ping > 0) {
+    if (++ros->pingTimer >= settings.UpdateRate.Ping && settings.UpdateRate.Ping > 0) {
         ros->pingTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_PING] = true;
     }
-    if (++ros->stateTimer >= currentUpdateRates.State && currentUpdateRates.State > 0) {
+    if (++ros->stateTimer >= settings.UpdateRate.State && settings.UpdateRate.State > 0) {
         ros->stateTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE] = true;
@@ -579,7 +579,7 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
  */
 void SettingsCb(__attribute__((unused)) UAVObjEvent *ev)
 {
-    ROSBridgeSettingsUpdateRateGet(&currentUpdateRates);
+    ROSBridgeSettingsGet(&settings);
 }
 
 /**

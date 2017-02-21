@@ -143,4 +143,9 @@ void rosbridge::rosinfoPrint(const char *bla)
     ROS_INFO("%s", bla);
     instance->ROSinfo_Mutex.unlock();
 }
+
+std::string rosbridge::getNameSpace()
+{
+    return instance->nameSpace;
+}
 }

@@ -293,10 +293,10 @@ public:
         unsigned char c;
 
         rx_length  = 0;
-        state_pub  = nodehandle->advertise<nav_msgs::Odometry>("Octocopter", 10);
-        state2_pub = nodehandle->advertise<geometry_msgs::PoseStamped>("octoPose", 10);
-        state3_pub = nodehandle->advertise<uav_msgs::uav_pose>("UAVPose", 10);
-        state4_pub = nodehandle->advertise<librepilot::TransmitterInfo>("TransmitterInfo", 10);
+        state_pub  = nodehandle->advertise<nav_msgs::Odometry>(parent->getNameSpace() + "/Octocopter", 10);
+        state2_pub = nodehandle->advertise<geometry_msgs::PoseStamped>(parent->getNameSpace() + "/octoPose", 10);
+        state3_pub = nodehandle->advertise<uav_msgs::uav_pose>(parent->getNameSpace() + "/pose", 10);
+        state4_pub = nodehandle->advertise<librepilot::TransmitterInfo>(parent->getNameSpace() + "/TransmitterInfo", 10);
         while (ros::ok()) {
             boost::asio::read(*port, boost::asio::buffer(&c, 1));
             ros_receive_byte(c);

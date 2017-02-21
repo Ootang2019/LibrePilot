@@ -72,6 +72,7 @@ typedef enum {
 
 typedef struct {
     float    control[4];
+    float    poi[3];
     uint32_t mode;
 } rosbridgemessage_flightcontrol_t;
 

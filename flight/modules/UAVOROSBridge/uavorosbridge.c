@@ -67,6 +67,7 @@
 #include "actuatordesired.h"
 #include "auxpositionsensor.h"
 #include "pathdesired.h"
+#include "poilocation.h"
 #include "flightmodesettings.h"
 #include "flightstatus.h"
 #include "positionstate.h"
@@ -315,6 +316,7 @@ static int32_t uavoROSBridgeInitialize(void)
             GyroStateConnectCallback(&RateCb);
             FlightStatusInitialize();
             PathDesiredInitialize();
+            PoiLocationInitialize();
             ActuatorDesiredInitialize();
             FlightModeSettingsInitialize();
             ManualControlCommandInitialize();
@@ -396,6 +398,12 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
     break;
     }
     PathDesiredSet(&pathDesired);
+    PoiLocationData poiLocation;
+    PoiLocationGet(&poiLocation);
+    poiLocation.North = data->poi[0];
+    poiLocation.East  = data->poi[1];
+    poiLocation.Down  = data->poi[2];
+    PoiLocationSet(&poiLocation);
 }
 static void pos_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
 {

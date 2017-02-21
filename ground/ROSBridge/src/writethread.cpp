@@ -76,9 +76,12 @@ public:
         rosbridgemessage_flightcontrol_t *payload = (rosbridgemessage_flightcontrol_t *)message->data;
 
         payload->control[0] = msg->position.x;
-        payload->control[1] = msg->position.x;
+        payload->control[1] = msg->position.y;
         payload->control[2] = msg->position.z;
         payload->control[3] = 0;
+        payload->poi[0]     = msg->POI.x;
+        payload->poi[1]     = msg->POI.y;
+        payload->poi[2]     = msg->POI.z;
         payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_FLIGHTCONTROL;

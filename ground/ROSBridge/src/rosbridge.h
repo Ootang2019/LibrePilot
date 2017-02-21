@@ -51,6 +51,7 @@ public:
     void setMySequenceNumber(uint8_t value);
     int serialWrite(uint8_t *buffer, size_t length);
     void rosinfoPrint(const char *bla);
+    std::string getNameSpace();
 
 private:
     rosbridge_priv *instance;

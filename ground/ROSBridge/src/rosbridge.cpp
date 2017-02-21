@@ -61,6 +61,7 @@ public:
     boost::posix_time::ptime start;
     boost::mutex serial_Mutex;
     boost::mutex ROSinfo_Mutex;
+    std::string nameSpace;
     // ...
 };
 
@@ -89,11 +90,18 @@ int rosbridge::run(void)
     // boost::asio::signal_set signals(instance->io_service, SIGINT, SIGTERM);
     // signals.async_wait(sigHandler);
 
+    if (instance->argc < 4) {
+        printf("Usage: %s <namespace> <serial_port> <baudrate>\n", instance->argv[0]);
+        return -1;
+    }
+
+    instance->nameSpace = std::string(instance->argv[1]);
+
     // open tty device
     boost::asio::serial_port revolution(instance->io_service);
     instance->revolution = &revolution;
-    revolution.open(instance->argv[1]);
-    revolution.set_option(boost::asio::serial_port_base::baud_rate(boost::lexical_cast<int>(instance->argv[2])));
+    revolution.open(instance->argv[2]);
+    revolution.set_option(boost::asio::serial_port_base::baud_rate(boost::lexical_cast<int>(instance->argv[3])));
 
     readthread reader(instance->nodehandle, &revolution, this);
     writethread writer(instance->nodehandle, this);

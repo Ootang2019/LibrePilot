@@ -88,7 +88,6 @@
 // System Settings
 // -------------------------
 #define PIOS_MASTER_CLOCK        72000000
-#define PIOS_PERIPHERAL_CLOCK    (PIOS_MASTER_CLOCK / 2)
 
 // -------------------------
 // Interrupt Priorities

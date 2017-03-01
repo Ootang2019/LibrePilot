@@ -212,6 +212,7 @@ uint32_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
 #define PIOS_COM_MSP_RX_BUF_LEN          64
 
 #define PIOS_COM_MAVLINK_TX_BUF_LEN      128
+#define PIOS_COM_MAVLINK_RX_BUF_LEN      128
 
 #if defined(PIOS_INCLUDE_DEBUG_CONSOLE)
 #define PIOS_COM_DEBUGCONSOLE_TX_BUF_LEN 40
@@ -231,6 +232,7 @@ uint32_t pios_com_vcp_id       = 0;
 
 #if defined(PIOS_INCLUDE_RFM22B)
 uint32_t pios_rfm22b_id        = 0;
+#include <pios_rfm22b_com.h>
 #endif
 
 uintptr_t pios_uavo_settings_fs_id;
@@ -238,11 +240,11 @@ uintptr_t pios_user_fs_id;
 
 /*
  * Setup a com port based on the passed cfg, driver and buffer sizes.
- * tx size <= 0 make the port rx only
- * rx size <= 0 make the port tx only
- * having both tx and rx size <= 0 is not valid and will fail further down in PIOS_COM_Init()
+ * tx size = 0 make the port rx only
+ * rx size = 0 make the port tx only
+ * having both tx and rx size = 0 is not valid and will fail further down in PIOS_COM_Init()
  */
-static void PIOS_Board_configure_com(const struct pios_usart_cfg *usart_port_cfg, size_t rx_buf_len, size_t tx_buf_len,
+static void PIOS_Board_configure_com(const struct pios_usart_cfg *usart_port_cfg, uint16_t rx_buf_len, uint16_t tx_buf_len,
                                      const struct pios_com_driver *com_driver, uint32_t *pios_com_id)
 {
     uint32_t pios_usart_id;
@@ -807,10 +809,10 @@ void PIOS_Board_Init(void)
     } /*        hwsettings_spk2_mainport */
 
 
-    /* Initalize the RFM22B radio COM device. */
+    /* Initialize the RFM22B radio COM device. */
 #if defined(PIOS_INCLUDE_RFM22B)
 
-    /* Fetch the OPinkSettings object. */
+    /* Fetch the OPLinkSettings object. */
     OPLinkSettingsData oplinkSettings;
     OPLinkSettingsGet(&oplinkSettings);
 
@@ -852,7 +854,8 @@ void PIOS_Board_Init(void)
         } else {
             /* Configure the RFM22B device. */
             const struct pios_rfm22b_cfg *rfm22b_cfg = PIOS_BOARD_HW_DEFS_GetRfm22Cfg(bdinfo->board_rev);
-            if (PIOS_RFM22B_Init(&pios_rfm22b_id, PIOS_RFM22_SPI_PORT, rfm22b_cfg->slave_num, rfm22b_cfg)) {
+
+            if (PIOS_RFM22B_Init(&pios_rfm22b_id, PIOS_RFM22_SPI_PORT, rfm22b_cfg->slave_num, rfm22b_cfg, oplinkSettings.RFBand)) {
                 PIOS_Assert(0);
             }
 
@@ -895,6 +898,7 @@ void PIOS_Board_Init(void)
             /* Set the radio configuration parameters. */
             PIOS_RFM22B_SetDeviceID(pios_rfm22b_id, oplinkSettings.CustomDeviceID);
             PIOS_RFM22B_SetCoordinatorID(pios_rfm22b_id, oplinkSettings.CoordID);
+            PIOS_RFM22B_SetXtalCap(pios_rfm22b_id, oplinkSettings.RFXtalCap);
             PIOS_RFM22B_SetChannelConfig(pios_rfm22b_id, datarate, oplinkSettings.MinChannel, oplinkSettings.MaxChannel, is_coordinator, data_mode, ppm_mode);
 
             /* Set the PPM callback if we should be receiving PPM. */
@@ -935,6 +939,32 @@ void PIOS_Board_Init(void)
 
             /* Reinitialize the modem. */
             PIOS_RFM22B_Reinit(pios_rfm22b_id);
+            // TODO: this is in preparation for full mavlink support and is used by LP-368
+            uint16_t mavlink_rx_size = PIOS_COM_MAVLINK_RX_BUF_LEN;
+
+            uint8_t hwsettings_radioaux;
+            HwSettingsRadioAuxStreamGet(&hwsettings_radioaux);
+
+            switch (hwsettings_radioaux) {
+            case HWSETTINGS_RADIOAUXSTREAM_DEBUGCONSOLE:
+            case HWSETTINGS_RADIOAUXSTREAM_DISABLED:
+                break;
+            case HWSETTINGS_RADIOAUXSTREAM_MAVLINK:
+            {
+                uint8_t *auxrx_buffer = 0;
+                if (mavlink_rx_size) {
+                    auxrx_buffer = (uint8_t *)pios_malloc(mavlink_rx_size);
+                }
+                uint8_t *auxtx_buffer = (uint8_t *)pios_malloc(PIOS_COM_MAVLINK_TX_BUF_LEN);
+                PIOS_Assert(auxrx_buffer);
+                PIOS_Assert(auxtx_buffer);
+                if (PIOS_COM_Init(&pios_com_mavlink_id, &pios_rfm22b_aux_com_driver, pios_rfm22b_id,
+                                  auxrx_buffer, mavlink_rx_size,
+                                  auxtx_buffer, PIOS_COM_BRIDGE_TX_BUF_LEN)) {
+                    PIOS_Assert(0);
+                }
+            }
+            }
         }
     } else {
         oplinkStatus.LinkState = OPLINKSTATUS_LINKSTATE_DISABLED;

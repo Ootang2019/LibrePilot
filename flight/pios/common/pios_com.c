@@ -7,7 +7,8 @@
  * @{
  *
  * @file       pios_com.c
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
+ * @author     The LibrePilot Project, http://www.librepilot.org, Copyright (c) 2015-2017.
+ *             The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
  * @brief      COM layer functions
  * @see        The GNU Public License (GPL) Version 3
  *
@@ -112,7 +113,7 @@ static void PIOS_COM_UnblockTx(struct pios_com_dev *com_dev, bool *need_yield);
  * \param[in] id
  * \return < 0 if initialisation failed
  */
-int32_t PIOS_COM_Init(uint32_t *com_id, const struct pios_com_driver *driver, uint32_t lower_id, uint8_t *rx_buffer, size_t rx_buffer_len, uint8_t *tx_buffer, size_t tx_buffer_len)
+int32_t PIOS_COM_Init(uint32_t *com_id, const struct pios_com_driver *driver, uint32_t lower_id, uint8_t *rx_buffer, uint16_t rx_buffer_len, uint8_t *tx_buffer, uint16_t tx_buffer_len)
 {
     PIOS_Assert(com_id);
     PIOS_Assert(driver);
@@ -276,6 +277,23 @@ int32_t PIOS_COM_ChangeBaud(uint32_t com_id, uint32_t baud)
     /* Invoke the driver function if it exists */
     if (com_dev->driver->set_baud) {
         com_dev->driver->set_baud(com_dev->lower_id, baud);
+    }
+
+    return 0;
+}
+
+int32_t PIOS_COM_ChangeConfig(uint32_t com_id, enum PIOS_COM_Word_Length word_len, enum PIOS_COM_StopBits stop_bits, enum PIOS_COM_Parity parity, uint32_t baud_rate, enum PIOS_COM_Mode mode)
+{
+    struct pios_com_dev *com_dev = (struct pios_com_dev *)com_id;
+
+    if (!PIOS_COM_validate(com_dev)) {
+        /* Undefined COM port for this board (see pios_board.c) */
+        return -1;
+    }
+
+    /* Invoke the driver function if it exists */
+    if (com_dev->driver->set_config) {
+        com_dev->driver->set_config(com_dev->lower_id, word_len, stop_bits, parity, baud_rate, mode);
     }
 
     return 0;

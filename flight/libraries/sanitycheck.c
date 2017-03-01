@@ -41,7 +41,6 @@
 #include <systemalarms.h>
 #include <revosettings.h>
 #include <positionstate.h>
-#include <taskinfo.h>
 
 // a number of useful macros
 #define ADDSEVERITY(check)                                  severity = (severity != SYSTEMALARMS_ALARM_OK ? severity : ((check) ? SYSTEMALARMS_ALARM_OK : SYSTEMALARMS_ALARM_CRITICAL))
@@ -81,6 +80,7 @@ int32_t configuration_check()
     switch (revoFusion) {
     case REVOSETTINGS_FUSIONALGORITHM_COMPLEMENTARYMAGGPSOUTDOOR:
     case REVOSETTINGS_FUSIONALGORITHM_GPSNAVIGATIONINS13:
+    case REVOSETTINGS_FUSIONALGORITHM_GPSNAVIGATIONINS13CF:
         navCapableFusion = true;
         break;
     default:
@@ -93,7 +93,7 @@ int32_t configuration_check()
             }
         }
     }
-#else
+#else /* ifdef REVOLUTION */
     const bool navCapableFusion = false;
 #endif /* ifdef REVOLUTION */
 
@@ -364,6 +364,8 @@ FrameType_t GetCurrentFrameType()
     case SYSTEMSETTINGS_AIRFRAMETYPE_GROUNDVEHICLECAR:
     case SYSTEMSETTINGS_AIRFRAMETYPE_GROUNDVEHICLEDIFFERENTIAL:
     case SYSTEMSETTINGS_AIRFRAMETYPE_GROUNDVEHICLEMOTORCYCLE:
+    case SYSTEMSETTINGS_AIRFRAMETYPE_GROUNDVEHICLEBOAT:
+    case SYSTEMSETTINGS_AIRFRAMETYPE_GROUNDVEHICLEDIFFERENTIALBOAT:
         return FRAME_TYPE_GROUND;
 
     case SYSTEMSETTINGS_AIRFRAMETYPE_VTOL:

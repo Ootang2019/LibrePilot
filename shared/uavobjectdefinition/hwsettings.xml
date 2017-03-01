@@ -11,9 +11,9 @@
 		<field name="RV_TelemetryPort" units="function" type="enum" elements="1" options="Disabled,Telemetry,ComAux,ComBridge,MSP,MAVLink" defaultvalue="Telemetry"/>
 		<field name="RV_GPSPort" units="function" type="enum" elements="1" options="Disabled,Telemetry,GPS,ComAux,ComBridge,MSP,MAVLink" defaultvalue="GPS"/>
 
-		<field name="RM_RcvrPort" units="function" type="enum" elements="1" options="Disabled,PWM,PPM,PPM+PWM,PPM+Outputs,PPM+Telemetry,PPM+DebugConsole,PPM+ComBridge,PPM+MSP,PPM+MAVLink,PPM+GPS,Outputs,Telemetry,DebugConsole,ComBridge,MSP,MAVLink,GPS"
+		<field name="RM_RcvrPort" units="function" type="enum" elements="1" options="Disabled,PWM,PPM,PPM+PWM,PPM+Outputs,PPM+Telemetry,PPM+DebugConsole,PPM+ComBridge,PPM+MSP,PPM+MAVLink,PPM+GPS,Outputs,Telemetry,DebugConsole,ComBridge,MSP,MAVLink,GPS,IBus"
 			defaultvalue="PWM"
-                        limits="%0905NE:PPM+PWM:PPM+Telemetry:PPM+DebugConsole:PPM+ComBridge:PPM+MSP:PPM+MAVLink:PPM+GPS:Telemetry:DebugConsole:ComBridge:MSP:MAVLink:GPS;"/>
+                        limits="%0905NE:PPM+PWM:PPM+Telemetry:PPM+DebugConsole:PPM+ComBridge:PPM+MSP:PPM+MAVLink:PPM+GPS:Telemetry:DebugConsole:ComBridge:MSP:MAVLink:GPS:IBus;"/>
 		<field name="RM_MainPort" units="function" type="enum" elements="1" options="Disabled,Telemetry,GPS,S.Bus,DSM,DebugConsole,ComBridge,OsdHk,MSP,MAVLink" defaultvalue="Disabled"/>
 		<field name="RM_FlexiPort" units="function" type="enum" elements="1" options="Disabled,Telemetry,GPS,I2C,DSM,EX.Bus,HoTT SUMD,HoTT SUMH,SRXL,IBus,DebugConsole,ComBridge,OsdHk,MSP,MAVLink" defaultvalue="Disabled"/>
 
@@ -29,7 +29,8 @@
 		<field name="ROSSpeed" units="bps" type="enum" elements="1" options="2400,4800,9600,19200,38400,57600,115200" defaultvalue="115200"/>
 		<field name="MAVLinkSpeed" units="bps" type="enum" elements="1" options="2400,4800,9600,19200,38400,57600,115200" defaultvalue="57600"/>
 		<field name="USB_HIDPort" units="function" type="enum" elements="1" options="USBTelemetry,RCTransmitter,Disabled" defaultvalue="USBTelemetry"/>
-		<field name="USB_VCPPort" units="function" type="enum" elements="1" options="USBTelemetry,ComBridge,DebugConsole,ROSBridge,Disabled" defaultvalue="Disabled"/>
+		<field name="USB_VCPPort" units="function" type="enum" elements="1" options="USBTelemetry,ComBridge,DebugConsole,ROSBridge,Disabled,MAVLink" defaultvalue="Disabled"/>
+        <field name="RadioAuxStream" units="function" type="enum" elements="1" options="DebugConsole,Disabled,MAVLink" defaultvalue="Disabled"/>
 
 		<field name="OptionalModules" units="" type="enum" elementnames="CameraStab,CameraControl,GPS,Fault,Altitude,Airspeed,TxPID,Battery,Overo,MagBaro,OsdHk,AutoTune" options="Disabled,Enabled" defaultvalue="Disabled"/>
 		<field name="ADCRouting" units="" type="enum" elementnames="adc0,adc1,adc2,adc3,adc4,adc5,adc6,adc7" options="Disabled,BatteryVoltage,BatteryCurrent,AnalogAirspeed,Generic" defaultvalue="Disabled"/>

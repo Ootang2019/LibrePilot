@@ -1,6 +1,6 @@
 #
 # Top level Makefile for the LibrePilot Project build system.
-# Copyright (c) 2015, The LibrePilot Project, http://www.librepilot.org
+# Copyright (c) 2015-2017, The LibrePilot Project, http://www.librepilot.org
 # Copyright (c) 2010-2013, The OpenPilot Team, http://www.openpilot.org
 # Use 'make help' for instructions.
 #
@@ -195,7 +195,7 @@ $(UAVOBJGENERATOR): | $(UAVOBJGENERATOR_DIR)
 	    CONFIG+='$(GCS_BUILD_CONF) $(GCS_EXTRA_CONF)' ) && \
 	    $(MAKE) --no-print-directory -w
 
-UAVOBJ_TARGETS := gcs flight python matlab java wireshark
+UAVOBJ_TARGETS := gcs flight arduino python matlab java wireshark
 
 .PHONY: uavobjects
 uavobjects:  $(addprefix uavobjects_, $(UAVOBJ_TARGETS))
@@ -411,6 +411,7 @@ $(FW_DIST_TAR): $(PACKAGE_FW_TARGETS) | $(DIST_DIR)
 	$(V1) tar -c --file="$(FW_DIST_TAR)" --directory=$(FLIGHT_OUT_DIR) \
 		--owner=root --group=root --mtime="`git show -s --format=%ci`" \
 		--transform='s,^,firmware/,' \
+		--force-local \
 		$(foreach fw_targ,$(PACKAGE_FW_TARGETS),$(fw_targ)/$(fw_targ).opfw)
 
 $(FW_DIST_TAR_GZ): $(FW_DIST_TAR)
@@ -602,7 +603,7 @@ help:
 	@$(ECHO)
 	@$(ECHO) "   This Makefile is known to work on Linux and Mac in a standard shell environment."
 	@$(ECHO) "   It also works on Windows by following the instructions given on this wiki page:"
-	@$(ECHO) "       $(WIKI_ROOT_URL)Windows+Building+and+Packaging"
+	@$(ECHO) "       $(WIKI_URL_ROOT)Windows+Building+and+Packaging"
 	@$(ECHO)
 	@$(ECHO) "   Here is a summary of the available targets:"
 	@$(ECHO)

@@ -1,13 +1,13 @@
 /**
  ******************************************************************************
  *
- * @file       defaultccattitudewidget.h
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
- * @addtogroup GCSPlugins GCS Plugins
- * @{
- * @addtogroup ConfigPlugin Config Plugin
- * @{
- * @brief Placeholder for attitude settings widget until board connected.
+ * @file       uavobjectgeneratorarduino.h
+ * @author     The LibrePilot Project, https://www.librepilot.org Copyright (C) 2017.
+ *             The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
+ * @brief      produce arduino code for uavobjects
+ *
+ * @see        The GNU Public License (GPL) Version 3
+ *
  *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
@@ -24,24 +24,24 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-#ifndef DEFAULTHWSETTINGSt_H
-#define DEFAULTHWSETTINGSt_H
 
-#include <QWidget>
+#ifndef UAVOBJECTGENERATORARDUINO_H
+#define UAVOBJECTGENERATORARDUINO_H
 
-class Ui_defaulthwsettings;
+#define ARDUINO_CODE_DIR "arduino/uavobjects"
 
-class DefaultHwSettingsWidget : public QWidget {
-    Q_OBJECT
+#include "../generator_common.h"
 
+class UAVObjectGeneratorArduino {
 public:
-    explicit DefaultHwSettingsWidget(QWidget *parent = 0);
-    ~DefaultHwSettingsWidget();
-
-private slots:
+    bool generate(UAVObjectParser *gen, QString templatepath, QString outputpath);
+    QStringList fieldTypeStrC;
+    QString arduinoIncludeTemplate;
+    QDir arduinoCodePath;
+    QDir arduinoOutputPath;
 
 private:
-    Ui_defaulthwsettings *ui;
+    bool process_object(ObjectInfo *info);
 };
 
-#endif // DEFAULTHWSETTINGSt_H
+#endif

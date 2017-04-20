@@ -232,9 +232,9 @@ public:
         odometry.twist.twist.linear.y  = data->velocity[0];
         odometry.twist.twist.linear.x  = data->velocity[1];
         odometry.twist.twist.linear.z  = -data->velocity[2];
-        odometry.twist.twist.angular.y = data->rotation[0];
-        odometry.twist.twist.angular.x = data->rotation[1];
-        odometry.twist.twist.angular.z = -data->rotation[2];
+        odometry.twist.twist.angular.y = data->rotation[0]*M_PI/180;
+        odometry.twist.twist.angular.x = data->rotation[1]*M_PI/180;
+        odometry.twist.twist.angular.z = -data->rotation[2]*M_PI/180;
         // FAKE covariance -- LibrePilot does have a covariance matrix, but its 13x13 and not trivially comparable
         // also ROS documentation on how the covariance is encoded into this double[36] (ro wvs col major, order of members, ...)
         // is very lacing

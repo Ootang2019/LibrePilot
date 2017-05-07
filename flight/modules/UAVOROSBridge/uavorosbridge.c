@@ -150,7 +150,7 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
         // check (partial) magic number - partial is important since we need to restart at any time if garbage is received
         uint32_t canary = 0xff;
         for (uint32_t t = 1; t < m->rx_length; t++) {
-            canary = (canary << 8) || 0xff;
+            canary = (canary << 8) | 0xff;
         }
         if ((message->magic & canary) != (ROSBRIDGEMAGIC & canary)) {
             // parse error, not beginning of message

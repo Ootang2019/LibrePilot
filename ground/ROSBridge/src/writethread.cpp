@@ -62,7 +62,7 @@ public:
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_POS_ESTIMATE;
         message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
-        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - *parent->getStart();
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - *parent->getStart();
         message->timestamp = diff.total_microseconds();
         message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
         parent->serialWrite(tx_buffer, message->length + offsetof(rosbridgemessage_t, data));
@@ -86,7 +86,7 @@ public:
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_FLIGHTCONTROL;
         message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
-        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - *parent->getStart();
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - *parent->getStart();
         message->timestamp = diff.total_microseconds();
         message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
         parent->serialWrite(tx_buffer, message->length + offsetof(rosbridgemessage_t, data));
@@ -109,7 +109,7 @@ public:
             message->magic     = ROSBRIDGEMAGIC;
             message->type      = ROSBRIDGEMESSAGE_PING;
             message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
-            boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - *parent->getStart();
+            boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - *parent->getStart();
             message->timestamp = diff.total_microseconds();
             message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
             int res = parent->serialWrite(tx_buffer, message->length + offsetof(rosbridgemessage_t, data));

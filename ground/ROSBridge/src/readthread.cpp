@@ -175,7 +175,7 @@ public:
         uav_msgs::uav_pose uavpose;
         librepilot::TransmitterInfo transmitter;
 
-        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
 
         // ATTENTION:  LibrePilot - like most outdoor platforms uses North-East-Down coordinate frame for all data
         // in body frame
@@ -274,7 +274,7 @@ public:
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_PONG;
         message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
-        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - *parent->getStart();
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - *parent->getStart();
         message->timestamp = diff.total_microseconds();
         message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
         int res = parent->serialWrite(tx_buffer, message->length + offsetof(rosbridgemessage_t, data));

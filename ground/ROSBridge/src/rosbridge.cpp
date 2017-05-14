@@ -71,7 +71,7 @@ rosbridge::rosbridge(int argc, char * *argv)
     instance = new rosbridge_priv();
     instance->argc  = argc;
     instance->argv  = argv;
-    instance->start = boost::posix_time::microsec_clock::local_time();
+    instance->start = boost::posix_time::microsec_clock::universal_time();
 }
 
 rosbridge::~rosbridge()

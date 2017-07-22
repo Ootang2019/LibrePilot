@@ -95,8 +95,8 @@ typedef struct {
 } rosbridgemessage_fullstate_estimate_t;
 
 typedef struct {
-    uint32_t since;
-    uint32_t numsamples;
+    uint32_t gyrsamples;
+    uint32_t accsamples;
     float    gyro_average[3];
     float    accel_average[3];
 } rosbridgemessage_imu_average_t;

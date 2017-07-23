@@ -627,6 +627,10 @@ void RawAccCb(__attribute__((unused)) UAVObjEvent *ev)
     ros->rawAccAccumulator[1] += acc.y;
     ros->rawAccAccumulator[2] += acc.z;
     ros->accTimer++;
+    ros->scheduled[ROSBRIDGEMESSAGE_IMU_AVERAGE] = true;
+    if (callbackHandle) {
+        PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
+    }
 }
 
 /**
@@ -636,7 +640,6 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
 {
     bool dispatch = false;
 
-    ros->scheduled[ROSBRIDGEMESSAGE_IMU_AVERAGE] = true;
     if (++ros->pingTimer >= settings.UpdateRate.Ping && settings.UpdateRate.Ping > 0) {
         ros->pingTimer = 0;
         dispatch = true;

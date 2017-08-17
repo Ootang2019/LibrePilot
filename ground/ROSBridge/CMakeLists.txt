@@ -58,6 +58,7 @@ DIRECTORY
 msg
 FILES
 TransmitterInfo.msg
+gyro_bias.msg
 #LPStateEstimate.msg
 #LPPing.msg
 )

@@ -38,6 +38,7 @@
 #include "uav_msgs/uav_pose.h"
 #include "sensor_msgs/Imu.h"
 #include "librepilot/TransmitterInfo.h"
+#include "librepilot/gyro_bias.h"
 #include <sstream>
 #include "boost/thread.hpp"
 #include "readthread.h"
@@ -54,7 +55,7 @@ public:
     uint8_t rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t rx_length;
     rosbridge *parent;
-    ros::Publisher state_pub, state2_pub, state3_pub, state4_pub, imu_pub;
+    ros::Publisher state_pub, state2_pub, state3_pub, state4_pub, imu_pub, gyro_bias_pub;
     uint32_t sequence;
     uint32_t imusequence;
 
@@ -157,6 +158,9 @@ public:
             case ROSBRIDGEMESSAGE_IMU_AVERAGE:
                 imu_average_handler(message);
                 break;
+            case ROSBRIDGEMESSAGE_GYRO_BIAS:
+                gyro_bias_handler(message);
+                break;
             default:
             {
                 std_msgs::String msg;
@@ -200,6 +204,24 @@ public:
         imu_pub.publish(imu);
         parent->rosinfoPrint("imu published");
     }
+
+    void gyro_bias_handler(rosbridgemessage_t *message)
+    {
+        rosbridgemessage_gyro_bias_t *data    = (rosbridgemessage_gyro_bias_t *)message->data;
+        librepilot::gyro_bias gyrobias;
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
+
+        gyrobias.header.seq = sequence++;
+        gyrobias.header.stamp.sec  = diff.total_seconds();
+        gyrobias.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
+        gyrobias.header.frame_id   = "world";
+        gyrobias.bias.x = data->gyro_bias[0];
+        gyrobias.bias.y = data->gyro_bias[1];
+        gyrobias.bias.z = data->gyro_bias[2];
+        gyro_bias_pub.publish(gyrobias);
+        parent->rosinfoPrint("gyrobias published");
+    }
+
 
     void fullstate_estimate_handler(rosbridgemessage_t *message)
     {
@@ -326,12 +348,13 @@ public:
     {
         unsigned char c;
 
-        rx_length  = 0;
-        state_pub  = nodehandle->advertise<nav_msgs::Odometry>(parent->getNameSpace() + "/Octocopter", 10);
-        state2_pub = nodehandle->advertise<geometry_msgs::PoseStamped>(parent->getNameSpace() + "/octoPose", 10);
-        state3_pub = nodehandle->advertise<uav_msgs::uav_pose>(parent->getNameSpace() + "/pose", 10);
-        state4_pub = nodehandle->advertise<librepilot::TransmitterInfo>(parent->getNameSpace() + "/TransmitterInfo", 10);
-        imu_pub    = nodehandle->advertise<sensor_msgs::Imu>(parent->getNameSpace() + "/Imu", 10);
+        rx_length     = 0;
+        state_pub     = nodehandle->advertise<nav_msgs::Odometry>(parent->getNameSpace() + "/Octocopter", 10);
+        state2_pub    = nodehandle->advertise<geometry_msgs::PoseStamped>(parent->getNameSpace() + "/octoPose", 10);
+        state3_pub    = nodehandle->advertise<uav_msgs::uav_pose>(parent->getNameSpace() + "/pose", 10);
+        state4_pub    = nodehandle->advertise<librepilot::TransmitterInfo>(parent->getNameSpace() + "/TransmitterInfo", 10);
+        imu_pub       = nodehandle->advertise<sensor_msgs::Imu>(parent->getNameSpace() + "/Imu", 10);
+        gyro_bias_pub = nodehandle->advertise<librepilot::gyro_bias>(parent->getNameSpace() + "/gyrobias", 10);
         while (ros::ok()) {
             boost::asio::read(*port, boost::asio::buffer(&c, 1));
             ros_receive_byte(c);

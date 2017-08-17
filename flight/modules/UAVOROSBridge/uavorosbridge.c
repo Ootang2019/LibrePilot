@@ -96,7 +96,10 @@ struct ros_bridge {
     double        roundTripTime;
     int32_t       pingTimer;
     int32_t       stateTimer;
+    int32_t       biasTimer;
     int32_t       rateTimer;
+    float         gyrRef[3];
+    float         gyrBias[3];
     float         rateAccumulator[3];
     float         rawGyrAccumulator[3];
     float         rawAccAccumulator[3];
@@ -122,7 +125,7 @@ static int32_t uavoROSBridgeInitialize(void);
 static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
-static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler;
+static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler;
 static ROSBridgeSettingsData settings;
 void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
 void SettingsCb(__attribute__((unused)) UAVObjEvent *ev);
@@ -137,6 +140,7 @@ static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE
     NULL,
     pong_handler,
     fullstate_estimate_handler,
+    gyro_bias_handler,
     imu_average_handler,
     gimbal_estimate_handler
 };
@@ -276,9 +280,16 @@ static int32_t uavoROSBridgeStart(void)
     PIOS_DELTATIME_Init(&ros->roundtrip, 1e-3f, 1e-6f, 10.0f, 1e-1f);
     ros->pingTimer  = 0;
     ros->stateTimer = 0;
+    ros->biasTimer  = 0;
     ros->rateTimer  = 0;
     ros->gyrTimer   = 0;
     ros->accTimer   = 0;
+    ros->gyrRef[0]  = 0;
+    ros->gyrRef[1]  = 0;
+    ros->gyrRef[2]  = 0;
+    ros->gyrBias[0] = 0;
+    ros->gyrBias[1] = 0;
+    ros->gyrBias[2] = 0;
     ros->rateAccumulator[0]   = 0;
     ros->rateAccumulator[1]   = 0;
     ros->rateAccumulator[2]   = 0;
@@ -544,6 +555,14 @@ static void imu_average_handler(__attribute__((unused)) struct ros_bridge *rb, _
         ros->accTimer = 0;
     }
 }
+static void gyro_bias_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    rosbridgemessage_gyro_bias_t *data = (rosbridgemessage_gyro_bias_t *)&(m->data);
+
+    data->gyro_bias[0] = ros->gyrBias[0];
+    data->gyro_bias[1] = ros->gyrBias[1];
+    data->gyro_bias[2] = ros->gyrBias[2];
+}
 static void gimbal_estimate_handler(__attribute__((unused)) struct ros_bridge *rb, __attribute__((unused)) rosbridgemessage_t *m)
 {
     // TODO
@@ -595,6 +614,9 @@ void RateCb(__attribute__((unused)) UAVObjEvent *ev)
     GyroStateData gyr;
 
     GyroStateGet(&gyr);
+    ros->gyrBias[0] = gyr.x - ros->gyrRef[0];
+    ros->gyrBias[0] = gyr.y - ros->gyrRef[1];
+    ros->gyrBias[0] = gyr.z - ros->gyrRef[2];
     ros->rateAccumulator[0] += gyr.x;
     ros->rateAccumulator[1] += gyr.y;
     ros->rateAccumulator[2] += gyr.z;
@@ -609,6 +631,9 @@ void RawGyrCb(__attribute__((unused)) UAVObjEvent *ev)
     GyroSensorData gyr;
 
     GyroSensorGet(&gyr);
+    ros->gyrRef[0] = gyr.x;
+    ros->gyrRef[1] = gyr.y;
+    ros->gyrRef[2] = gyr.z;
     ros->rawGyrAccumulator[0] += gyr.x;
     ros->rawGyrAccumulator[1] += gyr.y;
     ros->rawGyrAccumulator[2] += gyr.z;
@@ -649,6 +674,11 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
         ros->stateTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE] = true;
+    }
+    if (++ros->biasTimer >= settings.UpdateRate.Bias && settings.UpdateRate.Bias > 0) {
+        ros->biasTimer = 0;
+        dispatch = true;
+        ros->scheduled[ROSBRIDGEMESSAGE_GYRO_BIAS] = true;
     }
     if (dispatch && callbackHandle) {
         PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);

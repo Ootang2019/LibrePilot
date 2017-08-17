@@ -133,6 +133,7 @@ void RateCb(__attribute__((unused)) UAVObjEvent *ev);
 void RawGyrCb(__attribute__((unused)) UAVObjEvent *ev);
 void RawAccCb(__attribute__((unused)) UAVObjEvent *ev);
 
+// order here is important and must match order of rosbridgemessagetype_t
 static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     ping_handler,
     NULL,
@@ -140,8 +141,8 @@ static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE
     NULL,
     pong_handler,
     fullstate_estimate_handler,
-    gyro_bias_handler,
     imu_average_handler,
+    gyro_bias_handler,
     gimbal_estimate_handler
 };
 
@@ -615,8 +616,8 @@ void RateCb(__attribute__((unused)) UAVObjEvent *ev)
 
     GyroStateGet(&gyr);
     ros->gyrBias[0] = gyr.x - ros->gyrRef[0];
-    ros->gyrBias[0] = gyr.y - ros->gyrRef[1];
-    ros->gyrBias[0] = gyr.z - ros->gyrRef[2];
+    ros->gyrBias[1] = gyr.y - ros->gyrRef[1];
+    ros->gyrBias[2] = gyr.z - ros->gyrRef[2];
     ros->rateAccumulator[0] += gyr.x;
     ros->rateAccumulator[1] += gyr.y;
     ros->rateAccumulator[2] += gyr.z;

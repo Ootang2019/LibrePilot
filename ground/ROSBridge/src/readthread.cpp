@@ -202,7 +202,7 @@ public:
             imu.linear_acceleration_covariance[0] = -1; // no samples, set to ignore!
         }
         imu_pub.publish(imu);
-        parent->rosinfoPrint("imu published");
+        // parent->rosinfoPrint("imu published");
     }
 
     void gyro_bias_handler(rosbridgemessage_t *message)
@@ -317,7 +317,7 @@ public:
         state2_pub.publish(pose);
         state3_pub.publish(uavpose);
         state4_pub.publish(transmitter);
-        parent->rosinfoPrint("state published");
+        // parent->rosinfoPrint("state published");
     }
 
     void pong_handler(rosbridgemessage_pingpong_t *data)

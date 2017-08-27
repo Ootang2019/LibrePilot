@@ -35,6 +35,7 @@
 #include "ros/ros.h"
 #include "boost/asio.hpp"
 #include <boost/lexical_cast.hpp>
+#include "boost/thread.hpp"
 #include "readthread.h"
 #include "writethread.h"
 #include <string>
@@ -62,16 +63,30 @@ public:
     boost::mutex serial_Mutex;
     boost::mutex ROSinfo_Mutex;
     std::string nameSpace;
+    boost::thread *thread;
+    volatile int canary;
     // ...
+    void run()
+    {
+        while (1) {
+            this->canary = 0;
+            boost::this_thread::sleep(boost::posix_time::seconds(10));
+            if (this->canary == 0) {
+                fprintf(stderr, "CRITICAL TIMEOUT FAILURE! BAILING OUT!");
+                exit(1);
+            }
+        }
+    }
 };
 
 rosbridge::rosbridge(int argc, char * *argv)
 {
-    globalRosbridge = this;
+    globalRosbridge  = this;
     instance = new rosbridge_priv();
-    instance->argc  = argc;
-    instance->argv  = argv;
-    instance->start = boost::posix_time::microsec_clock::universal_time();
+    instance->argc   = argc;
+    instance->argv   = argv;
+    instance->start  = boost::posix_time::microsec_clock::universal_time();
+    instance->thread = new boost::thread(boost::bind(&rosbridge_priv::run, instance));
 }
 
 rosbridge::~rosbridge()
@@ -132,6 +147,7 @@ int rosbridge::serialWrite(uint8_t *buffer, size_t length)
     instance->serial_Mutex.lock();
     int res = boost::asio::write(*instance->revolution, boost::asio::buffer(buffer, length));
     instance->serial_Mutex.unlock();
+    instance->canary = 1;
 
 
     return res;

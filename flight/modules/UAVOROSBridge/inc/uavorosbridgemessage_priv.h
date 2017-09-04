@@ -42,6 +42,7 @@ typedef enum {
     ROSBRIDGEMESSAGE_PONG,
     ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE,
     ROSBRIDGEMESSAGE_IMU_AVERAGE,
+    ROSBRIDGEMESSAGE_GYRO_BIAS,
     ROSBRIDGEMESSAGE_GIMBAL_ESTIMATE,
     ROSBRIDGEMESSAGE_END_ARRAY_SIZE,
 } rosbridgemessagetype_t;
@@ -95,11 +96,15 @@ typedef struct {
 } rosbridgemessage_fullstate_estimate_t;
 
 typedef struct {
-    uint32_t since;
-    uint32_t numsamples;
+    uint32_t gyrsamples;
+    uint32_t accsamples;
     float    gyro_average[3];
     float    accel_average[3];
 } rosbridgemessage_imu_average_t;
+
+typedef struct {
+    float gyro_bias[3];
+} rosbridgemessage_gyro_bias_t;
 
 typedef struct {
     float quaternion[4];
@@ -114,6 +119,7 @@ static const size_t ROSBRIDGEMESSAGE_SIZES[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     sizeof(rosbridgemessage_pingpong_t),
     sizeof(rosbridgemessage_fullstate_estimate_t),
     sizeof(rosbridgemessage_imu_average_t),
+    sizeof(rosbridgemessage_gyro_bias_t),
     sizeof(rosbridgemessage_gimbal_estimate_t),
 };
 

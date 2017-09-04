@@ -31,6 +31,7 @@
 			<!-- optional -->
 			<elementname>GPS</elementname>
 			<elementname>OSDGen</elementname>
+			<elementname>UAVOHoTTBridge</elementname>
 			<elementname>UAVOMSPBridge</elementname>
 			<elementname>UAVOROSBridge</elementname>
 			<elementname>AutoTune</elementname>
@@ -67,6 +68,7 @@
 			<!-- optional -->
 			<elementname>GPS</elementname>
 			<elementname>OSDGen</elementname>
+			<elementname>UAVOHoTTBridge</elementname>
 			<elementname>UAVOMSPBridge</elementname>
 			<elementname>UAVOROSBridge</elementname>
 			<elementname>AutoTune</elementname>
@@ -107,6 +109,7 @@
 			<!-- optional -->
 			<elementname>GPS</elementname>
 			<elementname>OSDGen</elementname>
+			<elementname>UAVOHoTTBridge</elementname>
 			<elementname>UAVOMSPBridge</elementname>
 			<elementname>UAVOROSBridge</elementname>
 			<elementname>AutoTune</elementname>

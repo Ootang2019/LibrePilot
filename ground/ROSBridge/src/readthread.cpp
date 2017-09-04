@@ -36,7 +36,9 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "nav_msgs/Odometry.h"
 #include "uav_msgs/uav_pose.h"
+#include "sensor_msgs/Imu.h"
 #include "librepilot/TransmitterInfo.h"
+#include "librepilot/gyro_bias.h"
 #include <sstream>
 #include "boost/thread.hpp"
 #include "readthread.h"
@@ -53,9 +55,9 @@ public:
     uint8_t rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t rx_length;
     rosbridge *parent;
-    ros::Publisher state_pub, state2_pub, state3_pub, state4_pub;
+    ros::Publisher state_pub, state2_pub, state3_pub, state4_pub, imu_pub, gyro_bias_pub;
     uint32_t sequence;
-
+    uint32_t imusequence;
 
 /**
  * Process incoming bytes from an ROS query thing.
@@ -73,7 +75,7 @@ public:
             // check (partial) magic number - partial is important since we need to restart at any time if garbage is received
             uint32_t canary = 0xff;
             for (uint32_t t = 1; t < rx_length; t++) {
-                canary = (canary << 8) || 0xff;
+                canary = (canary << 8) | 0xff;
             }
             if ((message->magic & canary) != (ROSBRIDGEMAGIC & canary)) {
                 // parse error, not beginning of message
@@ -153,6 +155,12 @@ public:
             case ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE:
                 fullstate_estimate_handler(message);
                 break;
+            case ROSBRIDGEMESSAGE_IMU_AVERAGE:
+                imu_average_handler(message);
+                break;
+            case ROSBRIDGEMESSAGE_GYRO_BIAS:
+                gyro_bias_handler(message);
+                break;
             default:
             {
                 std_msgs::String msg;
@@ -167,6 +175,54 @@ public:
         }
     }
 
+    void imu_average_handler(rosbridgemessage_t *message)
+    {
+        rosbridgemessage_imu_average_t *data  = (rosbridgemessage_imu_average_t *)message->data;
+        sensor_msgs::Imu imu;
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
+
+        imu.header.seq = sequence++;
+        imu.header.stamp.sec  = diff.total_seconds();
+        imu.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
+        imu.header.frame_id   = "world";
+        if (data->gyrsamples != 1 || data->accsamples != 1) {
+            parent->rosinfoPrint("imu message wrong sample count");
+        }
+        imu.orientation_covariance[0] = -1; // orientation is not a sensor, but a state estimate, see fullstate_estimate
+        imu.angular_velocity.x = data->gyro_average[0] * (M_PI / 180.0);
+        imu.angular_velocity.y = data->gyro_average[1] * (M_PI / 180.0);
+        imu.angular_velocity.z = data->gyro_average[2] * (M_PI / 180.0);
+        if (data->gyrsamples < 1) {
+            imu.angular_velocity_covariance[0] = -1; // no samples, set to ignore!
+        }
+        imu.linear_acceleration.x = data->accel_average[0];
+        imu.linear_acceleration.y = data->accel_average[1];
+        imu.linear_acceleration.z = data->accel_average[2];
+        if (data->accsamples < 1) {
+            imu.linear_acceleration_covariance[0] = -1; // no samples, set to ignore!
+        }
+        imu_pub.publish(imu);
+        // parent->rosinfoPrint("imu published");
+    }
+
+    void gyro_bias_handler(rosbridgemessage_t *message)
+    {
+        rosbridgemessage_gyro_bias_t *data    = (rosbridgemessage_gyro_bias_t *)message->data;
+        librepilot::gyro_bias gyrobias;
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
+
+        gyrobias.header.seq = sequence++;
+        gyrobias.header.stamp.sec  = diff.total_seconds();
+        gyrobias.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
+        gyrobias.header.frame_id   = "world";
+        gyrobias.bias.x = data->gyro_bias[0];
+        gyrobias.bias.y = data->gyro_bias[1];
+        gyrobias.bias.z = data->gyro_bias[2];
+        gyro_bias_pub.publish(gyrobias);
+        parent->rosinfoPrint("gyrobias published");
+    }
+
+
     void fullstate_estimate_handler(rosbridgemessage_t *message)
     {
         rosbridgemessage_fullstate_estimate_t *data = (rosbridgemessage_fullstate_estimate_t *)message->data;
@@ -175,7 +231,7 @@ public:
         uav_msgs::uav_pose uavpose;
         librepilot::TransmitterInfo transmitter;
 
-        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
 
         // ATTENTION:  LibrePilot - like most outdoor platforms uses North-East-Down coordinate frame for all data
         // in body frame
@@ -232,9 +288,9 @@ public:
         odometry.twist.twist.linear.y  = data->velocity[0];
         odometry.twist.twist.linear.x  = data->velocity[1];
         odometry.twist.twist.linear.z  = -data->velocity[2];
-        odometry.twist.twist.angular.y = data->rotation[0];
-        odometry.twist.twist.angular.x = data->rotation[1];
-        odometry.twist.twist.angular.z = -data->rotation[2];
+        odometry.twist.twist.angular.y = data->rotation[0] * M_PI / 180;
+        odometry.twist.twist.angular.x = data->rotation[1] * M_PI / 180;
+        odometry.twist.twist.angular.z = -data->rotation[2] * M_PI / 180;
         // FAKE covariance -- LibrePilot does have a covariance matrix, but its 13x13 and not trivially comparable
         // also ROS documentation on how the covariance is encoded into this double[36] (ro wvs col major, order of members, ...)
         // is very lacing
@@ -261,7 +317,7 @@ public:
         state2_pub.publish(pose);
         state3_pub.publish(uavpose);
         state4_pub.publish(transmitter);
-        parent->rosinfoPrint("state published");
+        // parent->rosinfoPrint("state published");
     }
 
     void pong_handler(rosbridgemessage_pingpong_t *data)
@@ -274,7 +330,7 @@ public:
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_PONG;
         message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
-        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - *parent->getStart();
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - *parent->getStart();
         message->timestamp = diff.total_microseconds();
         message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
         int res = parent->serialWrite(tx_buffer, message->length + offsetof(rosbridgemessage_t, data));
@@ -292,11 +348,13 @@ public:
     {
         unsigned char c;
 
-        rx_length  = 0;
-        state_pub  = nodehandle->advertise<nav_msgs::Odometry>(parent->getNameSpace() + "/Octocopter", 10);
-        state2_pub = nodehandle->advertise<geometry_msgs::PoseStamped>(parent->getNameSpace() + "/octoPose", 10);
-        state3_pub = nodehandle->advertise<uav_msgs::uav_pose>(parent->getNameSpace() + "/pose", 10);
-        state4_pub = nodehandle->advertise<librepilot::TransmitterInfo>(parent->getNameSpace() + "/TransmitterInfo", 10);
+        rx_length     = 0;
+        state_pub     = nodehandle->advertise<nav_msgs::Odometry>(parent->getNameSpace() + "/Octocopter", 10);
+        state2_pub    = nodehandle->advertise<geometry_msgs::PoseStamped>(parent->getNameSpace() + "/octoPose", 10);
+        state3_pub    = nodehandle->advertise<uav_msgs::uav_pose>(parent->getNameSpace() + "/pose", 10);
+        state4_pub    = nodehandle->advertise<librepilot::TransmitterInfo>(parent->getNameSpace() + "/TransmitterInfo", 10);
+        imu_pub       = nodehandle->advertise<sensor_msgs::Imu>(parent->getNameSpace() + "/Imu", 10);
+        gyro_bias_pub = nodehandle->advertise<librepilot::gyro_bias>(parent->getNameSpace() + "/gyrobias", 10);
         while (ros::ok()) {
             boost::asio::read(*port, boost::asio::buffer(&c, 1));
             ros_receive_byte(c);
@@ -315,11 +373,12 @@ public:
 readthread::readthread(ros::NodeHandle *nodehandle, boost::asio::serial_port *port, rosbridge *parent)
 {
     instance = new readthread_priv();
-    instance->parent     = parent;
-    instance->port       = port;
-    instance->nodehandle = nodehandle;
-    instance->sequence   = 0;
-    instance->thread     = new boost::thread(boost::bind(&readthread_priv::run, instance));
+    instance->parent      = parent;
+    instance->port        = port;
+    instance->nodehandle  = nodehandle;
+    instance->sequence    = 0;
+    instance->imusequence = 0;
+    instance->thread      = new boost::thread(boost::bind(&readthread_priv::run, instance));
 }
 
 readthread::~readthread()

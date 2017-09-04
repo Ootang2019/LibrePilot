@@ -74,6 +74,8 @@
 #include "velocitystate.h"
 #include "attitudestate.h"
 #include "gyrostate.h"
+#include "gyrosensor.h"
+#include "accelsensor.h"
 #include "rosbridgesettings.h"
 #include "rosbridgestatus.h"
 #include "objectpersistence.h"
@@ -94,8 +96,15 @@ struct ros_bridge {
     double        roundTripTime;
     int32_t       pingTimer;
     int32_t       stateTimer;
+    int32_t       biasTimer;
     int32_t       rateTimer;
+    float         gyrRef[3];
+    float         gyrBias[3];
     float         rateAccumulator[3];
+    float         rawGyrAccumulator[3];
+    float         rawAccAccumulator[3];
+    int32_t       gyrTimer;
+    int32_t       accTimer;
     uint8_t       rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t        rx_length;
     volatile bool scheduled[ROSBRIDGEMESSAGE_END_ARRAY_SIZE];
@@ -116,12 +125,15 @@ static int32_t uavoROSBridgeInitialize(void);
 static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
-static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler;
+static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler;
 static ROSBridgeSettingsData settings;
 void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
 void SettingsCb(__attribute__((unused)) UAVObjEvent *ev);
 void RateCb(__attribute__((unused)) UAVObjEvent *ev);
+void RawGyrCb(__attribute__((unused)) UAVObjEvent *ev);
+void RawAccCb(__attribute__((unused)) UAVObjEvent *ev);
 
+// order here is important and must match order of rosbridgemessagetype_t
 static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     ping_handler,
     NULL,
@@ -130,6 +142,7 @@ static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE
     pong_handler,
     fullstate_estimate_handler,
     imu_average_handler,
+    gyro_bias_handler,
     gimbal_estimate_handler
 };
 
@@ -150,7 +163,7 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
         // check (partial) magic number - partial is important since we need to restart at any time if garbage is received
         uint32_t canary = 0xff;
         for (uint32_t t = 1; t < m->rx_length; t++) {
-            canary = (canary << 8) || 0xff;
+            canary = (canary << 8) | 0xff;
         }
         if ((message->magic & canary) != (ROSBRIDGEMAGIC & canary)) {
             // parse error, not beginning of message
@@ -268,12 +281,27 @@ static int32_t uavoROSBridgeStart(void)
     PIOS_DELTATIME_Init(&ros->roundtrip, 1e-3f, 1e-6f, 10.0f, 1e-1f);
     ros->pingTimer  = 0;
     ros->stateTimer = 0;
+    ros->biasTimer  = 0;
     ros->rateTimer  = 0;
-    ros->rateAccumulator[0] = 0;
-    ros->rateAccumulator[1] = 0;
-    ros->rateAccumulator[2] = 0;
+    ros->gyrTimer   = 0;
+    ros->accTimer   = 0;
+    ros->gyrRef[0]  = 0;
+    ros->gyrRef[1]  = 0;
+    ros->gyrRef[2]  = 0;
+    ros->gyrBias[0] = 0;
+    ros->gyrBias[1] = 0;
+    ros->gyrBias[2] = 0;
+    ros->rateAccumulator[0]   = 0;
+    ros->rateAccumulator[1]   = 0;
+    ros->rateAccumulator[2]   = 0;
+    ros->rawGyrAccumulator[0] = 0;
+    ros->rawGyrAccumulator[1] = 0;
+    ros->rawGyrAccumulator[2] = 0;
+    ros->rawAccAccumulator[0] = 0;
+    ros->rawAccAccumulator[1] = 0;
+    ros->rawAccAccumulator[2] = 0;
     ros->rx_length = 0;
-    ros->myPingSequence     = 0x66;
+    ros->myPingSequence = 0x66;
 
     xTaskHandle taskHandle;
 
@@ -314,6 +342,10 @@ static int32_t uavoROSBridgeInitialize(void)
             AttitudeStateConnectCallback(&AttitudeCb);
             GyroStateInitialize();
             GyroStateConnectCallback(&RateCb);
+            GyroSensorInitialize();
+            GyroSensorConnectCallback(&RawGyrCb);
+            AccelSensorInitialize();
+            AccelSensorConnectCallback(&RawAccCb);
             FlightStatusInitialize();
             PathDesiredInitialize();
             PoiLocationInitialize();
@@ -493,7 +525,44 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
 }
 static void imu_average_handler(__attribute__((unused)) struct ros_bridge *rb, __attribute__((unused)) rosbridgemessage_t *m)
 {
-    // TODO
+    rosbridgemessage_imu_average_t *data = (rosbridgemessage_imu_average_t *)&(m->data);
+
+    data->gyro_average[0]  = ros->rawGyrAccumulator[0];
+    data->gyro_average[1]  = ros->rawGyrAccumulator[1];
+    data->gyro_average[2]  = ros->rawGyrAccumulator[2];
+    data->accel_average[0] = ros->rawAccAccumulator[0];
+    data->accel_average[1] = ros->rawAccAccumulator[1];
+    data->accel_average[2] = ros->rawAccAccumulator[2];
+    data->gyrsamples = ros->gyrTimer;
+    data->accsamples = ros->accTimer;
+    if (ros->gyrTimer >= 1) {
+        float factor = 1.0f / (float)ros->gyrTimer;
+        data->gyro_average[0]    *= factor;
+        data->gyro_average[1]    *= factor;
+        data->gyro_average[2]    *= factor;
+        ros->rawGyrAccumulator[0] = 0;
+        ros->rawGyrAccumulator[1] = 0;
+        ros->rawGyrAccumulator[2] = 0;
+        ros->gyrTimer = 0;
+    }
+    if (ros->accTimer >= 1) {
+        float factor = 1.0f / (float)ros->accTimer;
+        data->accel_average[0]   *= factor;
+        data->accel_average[1]   *= factor;
+        data->accel_average[2]   *= factor;
+        ros->rawAccAccumulator[0] = 0;
+        ros->rawAccAccumulator[1] = 0;
+        ros->rawAccAccumulator[2] = 0;
+        ros->accTimer = 0;
+    }
+}
+static void gyro_bias_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    rosbridgemessage_gyro_bias_t *data = (rosbridgemessage_gyro_bias_t *)&(m->data);
+
+    data->gyro_bias[0] = ros->gyrBias[0];
+    data->gyro_bias[1] = ros->gyrBias[1];
+    data->gyro_bias[2] = ros->gyrBias[2];
 }
 static void gimbal_estimate_handler(__attribute__((unused)) struct ros_bridge *rb, __attribute__((unused)) rosbridgemessage_t *m)
 {
@@ -546,10 +615,48 @@ void RateCb(__attribute__((unused)) UAVObjEvent *ev)
     GyroStateData gyr;
 
     GyroStateGet(&gyr);
+    ros->gyrBias[0] = gyr.x - ros->gyrRef[0];
+    ros->gyrBias[1] = gyr.y - ros->gyrRef[1];
+    ros->gyrBias[2] = gyr.z - ros->gyrRef[2];
     ros->rateAccumulator[0] += gyr.x;
     ros->rateAccumulator[1] += gyr.y;
     ros->rateAccumulator[2] += gyr.z;
     ros->rateTimer++;
+}
+
+/**
+ * Event Callback on Gyro updates (called with PIOS_SENSOR_RATE - roughly 500 Hz - from State Estimation)
+ */
+void RawGyrCb(__attribute__((unused)) UAVObjEvent *ev)
+{
+    GyroSensorData gyr;
+
+    GyroSensorGet(&gyr);
+    ros->gyrRef[0] = gyr.x;
+    ros->gyrRef[1] = gyr.y;
+    ros->gyrRef[2] = gyr.z;
+    ros->rawGyrAccumulator[0] += gyr.x;
+    ros->rawGyrAccumulator[1] += gyr.y;
+    ros->rawGyrAccumulator[2] += gyr.z;
+    ros->gyrTimer++;
+}
+
+/**
+ * Event Callback on Accel updates (called with PIOS_SENSOR_RATE - roughly 500 Hz - from State Estimation)
+ */
+void RawAccCb(__attribute__((unused)) UAVObjEvent *ev)
+{
+    AccelSensorData acc;
+
+    AccelSensorGet(&acc);
+    ros->rawAccAccumulator[0] += acc.x;
+    ros->rawAccAccumulator[1] += acc.y;
+    ros->rawAccAccumulator[2] += acc.z;
+    ros->accTimer++;
+    ros->scheduled[ROSBRIDGEMESSAGE_IMU_AVERAGE] = true;
+    if (callbackHandle) {
+        PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
+    }
 }
 
 /**
@@ -568,6 +675,11 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
         ros->stateTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE] = true;
+    }
+    if (++ros->biasTimer >= settings.UpdateRate.Bias && settings.UpdateRate.Bias > 0) {
+        ros->biasTimer = 0;
+        dispatch = true;
+        ros->scheduled[ROSBRIDGEMESSAGE_GYRO_BIAS] = true;
     }
     if (dispatch && callbackHandle) {
         PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);

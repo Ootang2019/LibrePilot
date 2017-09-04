@@ -172,7 +172,16 @@ void SixPointCalibrationModel::start(bool calibrateAccel, bool calibrateMag)
     accelGyroSettingsData.accel_bias[AccelGyroSettings::ACCEL_BIAS_Z]   = 0;
 
     accelGyroSettings->setData(accelGyroSettingsData, false);
-    updateHelper.doObjectAndWait(accelGyroSettings);
+    AbstractUAVObjectHelper::Result res;
+    for (int t = 0; t < 10; t++) {
+        res = updateHelper.doObjectAndWait(accelGyroSettings);
+        if (res == AbstractUAVObjectHelper::SUCCESS) {
+            break;
+        }
+    }
+    if (res != AbstractUAVObjectHelper::SUCCESS) {
+        displayInstructions(tr("Unable to reset accelerometer calibration settiongs."), WizardModel::Warn);
+    }
 
     // Calibration mag
     RevoCalibration::DataFields revoCalibrationData = revoCalibration->getData();
@@ -193,7 +202,16 @@ void SixPointCalibrationModel::start(bool calibrateAccel, bool calibrateMag)
     revoCalibrationData.MagBiasNullingRate = 0;
 
     revoCalibration->setData(revoCalibrationData, false);
-    updateHelper.doObjectAndWait(revoCalibration);
+
+    for (int t = 0; t < 10; t++) {
+        res = updateHelper.doObjectAndWait(revoCalibration);
+        if (res == AbstractUAVObjectHelper::SUCCESS) {
+            break;
+        }
+    }
+    if (res != AbstractUAVObjectHelper::SUCCESS) {
+        displayInstructions(tr("Unable to reset magnetometer calibration settiongs."), WizardModel::Warn);
+    }
 
     // Calibration AuxMag
     AuxMagSettings::DataFields auxMagSettingsData = auxMagSettings->getData();
@@ -214,7 +232,15 @@ void SixPointCalibrationModel::start(bool calibrateAccel, bool calibrateMag)
     auxMagSettingsData.MagBiasNullingRate = 0;
 
     auxMagSettings->setData(auxMagSettingsData, false);
-    updateHelper.doObjectAndWait(auxMagSettings);
+    for (int t = 0; t < 10; t++) {
+        res = updateHelper.doObjectAndWait(auxMagSettings);
+        if (res == AbstractUAVObjectHelper::SUCCESS) {
+            break;
+        }
+    }
+    if (res != AbstractUAVObjectHelper::SUCCESS) {
+        displayInstructions(tr("Unable to reset auxmagnetometer calibration settiongs."), WizardModel::Warn);
+    }
 
     mag_accum_x.clear();
     mag_accum_y.clear();

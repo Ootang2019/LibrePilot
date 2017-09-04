@@ -251,6 +251,9 @@ uint32_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
 #define PIOS_COM_BRIDGE_RX_BUF_LEN       65
 #define PIOS_COM_BRIDGE_TX_BUF_LEN       12
 
+#define PIOS_COM_HOTT_RX_BUF_LEN         512
+#define PIOS_COM_HOTT_TX_BUF_LEN         512
+
 #define PIOS_COM_RFM22B_RF_RX_BUF_LEN    512
 #define PIOS_COM_RFM22B_RF_TX_BUF_LEN    512
 
@@ -276,6 +279,7 @@ uint32_t pios_com_telem_usb_id = 0;
 uint32_t pios_com_telem_rf_id  = 0;
 uint32_t pios_com_rf_id        = 0;
 uint32_t pios_com_bridge_id    = 0;
+uint32_t pios_com_hott_id      = 0;
 uint32_t pios_com_overo_id     = 0;
 uint32_t pios_com_hkosd_id     = 0;
 uint32_t pios_com_vcp_id       = 0;
@@ -394,16 +398,6 @@ static void PIOS_Board_configure_ppm(const struct pios_ppm_cfg *ppm_cfg)
         PIOS_Assert(0);
     }
     pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_PPM] = pios_ppm_rcvr_id;
-}
-
-static void PIOS_Board_PPM_callback(const int16_t *channels)
-{
-    OPLinkReceiverData opl_rcvr;
-
-    for (uint8_t i = 0; i < OPLINKRECEIVER_CHANNEL_NUMELEM; ++i) {
-        opl_rcvr.Channel[i] = (i < RFM22B_PPM_NUM_CHANNELS) ? channels[i] : PIOS_RCVR_TIMEOUT;
-    }
-    OPLinkReceiverSet(&opl_rcvr);
 }
 
 /**
@@ -643,6 +637,9 @@ void PIOS_Board_Init(void)
         }
 #endif /* PIOS_INCLUDE_HOTT */
         break;
+    case HWSETTINGS_RM_FLEXIPORT_HOTTTELEMETRY:
+        PIOS_Board_configure_com(&pios_usart_hott_flexi_cfg, PIOS_COM_HOTT_RX_BUF_LEN, PIOS_COM_HOTT_TX_BUF_LEN, &pios_usart_com_driver, &pios_com_hott_id);
+        break;
 
     case HWSETTINGS_RM_FLEXIPORT_EXBUS:
 #if defined(PIOS_INCLUDE_EXBUS)
@@ -870,6 +867,9 @@ void PIOS_Board_Init(void)
         }
 #endif /* PIOS_INCLUDE_DEBUG_CONSOLE */
         break;
+    case HWSETTINGS_RM_MAINPORT_HOTTTELEMETRY:
+        PIOS_Board_configure_com(&pios_usart_main_cfg, PIOS_COM_HOTT_RX_BUF_LEN, PIOS_COM_HOTT_TX_BUF_LEN, &pios_usart_com_driver, &pios_com_hott_id);
+        break;
     case HWSETTINGS_RM_MAINPORT_COMBRIDGE:
         PIOS_Board_configure_com(&pios_usart_main_cfg, PIOS_COM_BRIDGE_RX_BUF_LEN, PIOS_COM_BRIDGE_TX_BUF_LEN, &pios_usart_com_driver, &pios_com_bridge_id);
         break;
@@ -911,7 +911,6 @@ void PIOS_Board_Init(void)
                        (oplinkSettings.LinkType == OPLINKSETTINGS_LINKTYPE_DATAANDCONTROL));
     bool ppm_mode   = ((oplinkSettings.LinkType == OPLINKSETTINGS_LINKTYPE_CONTROL) ||
                        (oplinkSettings.LinkType == OPLINKSETTINGS_LINKTYPE_DATAANDCONTROL));
-    bool ppm_only   = (oplinkSettings.LinkType == OPLINKSETTINGS_LINKTYPE_CONTROL);
     bool is_enabled = ((oplinkSettings.Protocol != OPLINKSETTINGS_PROTOCOL_DISABLED) &&
                        ((oplinkSettings.MaxRFPower != OPLINKSETTINGS_MAXRFPOWER_0) || openlrs));
     if (is_enabled) {
@@ -980,11 +979,6 @@ void PIOS_Board_Init(void)
             PIOS_RFM22B_SetCoordinatorID(pios_rfm22b_id, oplinkSettings.CoordID);
             PIOS_RFM22B_SetXtalCap(pios_rfm22b_id, oplinkSettings.RFXtalCap);
             PIOS_RFM22B_SetChannelConfig(pios_rfm22b_id, datarate, oplinkSettings.MinChannel, oplinkSettings.MaxChannel, is_coordinator, data_mode, ppm_mode);
-
-            /* Set the PPM callback if we should be receiving PPM. */
-            if (ppm_mode || (ppm_only && !is_coordinator)) {
-                PIOS_RFM22B_SetPPMCallback(pios_rfm22b_id, PIOS_Board_PPM_callback);
-            }
 
             /* Set the modem Tx power level */
             switch (oplinkSettings.MaxRFPower) {
@@ -1080,6 +1074,7 @@ void PIOS_Board_Init(void)
     case HWSETTINGS_RM_RCVRPORT_PPMMSP:
     case HWSETTINGS_RM_RCVRPORT_PPMMAVLINK:
     case HWSETTINGS_RM_RCVRPORT_PPMGPS:
+    case HWSETTINGS_RM_RCVRPORT_PPMHOTTTELEMETRY:
 #if defined(PIOS_INCLUDE_PPM)
         PIOS_Board_configure_ppm(&pios_ppm_cfg);
 
@@ -1129,6 +1124,10 @@ void PIOS_Board_Init(void)
     case HWSETTINGS_RM_RCVRPORT_PPMGPS:
         PIOS_Board_configure_com(&pios_usart_rcvrport_cfg, PIOS_COM_GPS_RX_BUF_LEN, PIOS_COM_GPS_TX_BUF_LEN, &pios_usart_com_driver, &pios_com_gps_id);
         break;
+    case HWSETTINGS_RM_RCVRPORT_HOTTTELEMETRY:
+    case HWSETTINGS_RM_RCVRPORT_PPMHOTTTELEMETRY:
+        PIOS_Board_configure_com(&pios_usart_rcvrport_cfg, PIOS_COM_HOTT_RX_BUF_LEN, PIOS_COM_HOTT_TX_BUF_LEN, &pios_usart_com_driver, &pios_com_hott_id);
+        break;
     case HWSETTINGS_RM_RCVRPORT_IBUS:
 #if defined(PIOS_INCLUDE_IBUS)
         PIOS_Board_configure_ibus(&pios_usart_ibus_rcvr_cfg);
@@ -1151,7 +1150,7 @@ void PIOS_Board_Init(void)
     {
         OPLinkReceiverInitialize();
         uint32_t pios_oplinkrcvr_id;
-        PIOS_OPLinkRCVR_Init(&pios_oplinkrcvr_id);
+        PIOS_OPLinkRCVR_Init(&pios_oplinkrcvr_id, pios_rfm22b_id);
         uint32_t pios_oplinkrcvr_rcvr_id;
         if (PIOS_RCVR_Init(&pios_oplinkrcvr_rcvr_id, &pios_oplinkrcvr_rcvr_driver, pios_oplinkrcvr_id)) {
             PIOS_Assert(0);

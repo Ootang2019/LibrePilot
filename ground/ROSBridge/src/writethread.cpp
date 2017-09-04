@@ -34,6 +34,7 @@
 #include "rosbridge.h"
 #include "std_msgs/String.h"
 #include "geometry_msgs/TransformStamped.h"
+#include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "uav_msgs/uav_pose.h"
 #include <sstream>
 #include "boost/thread.hpp"
@@ -48,6 +49,14 @@ public:
     boost::thread *thread;
     ros::NodeHandle *nodehandle;
     rosbridge *parent;
+    double offset[3];
+
+    void poseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr & msg)
+    {
+        offset[0] = msg->pose->pose.x;
+        offset[1] = msg->pose->pose.x;
+        offset[2] = msg->pose->pose.x;
+    }
 
     void poseCallback(const geometry_msgs::TransformStamped::ConstPtr & msg)
     {
@@ -75,9 +84,9 @@ public:
         rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
         rosbridgemessage_flightcontrol_t *payload = (rosbridgemessage_flightcontrol_t *)message->data;
 
-        payload->control[0] = msg->position.x;
-        payload->control[1] = msg->position.y;
-        payload->control[2] = msg->position.z;
+        payload->control[0] = msg->position.x - offset[0];
+        payload->control[1] = msg->position.y - offset[1];
+        payload->control[2] = msg->position.z - offset[2];
         payload->control[3] = 0;
         payload->poi[0]     = msg->POI.x;
         payload->poi[1]     = msg->POI.y;
@@ -99,6 +108,11 @@ public:
 
         ros::Subscriber subscriber1 = nodehandle->subscribe("vicon/octocopter/frame", 10, &writethread_priv::poseCallback, this);
         ros::Subscriber subscriber2 = nodehandle->subscribe(parent->getNameSpace() + "/command", 10, &writethread_priv::commandCallback, this);
+        ros::Subscriber subscriber3 = nodehandle->subscribe(parent->getNameSpace() + "/offset", 10, &writethread_priv::offsetCallback, this);
+
+        offset[0] = 0.0;
+        offset[1] = 0.0;
+        offset[2] = 0.0;
 
         while (ros::ok()) {
             uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];

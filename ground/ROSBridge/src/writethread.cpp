@@ -51,11 +51,11 @@ public:
     rosbridge *parent;
     double offset[3];
 
-    void poseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr & msg)
+    void offsetCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr & msg)
     {
-        offset[0] = msg->pose->pose.x;
-        offset[1] = msg->pose->pose.x;
-        offset[2] = msg->pose->pose.x;
+        offset[0] = msg->pose.pose.position.x;
+        offset[1] = msg->pose.pose.position.y;
+        offset[2] = msg->pose.pose.position.z;
     }
 
     void poseCallback(const geometry_msgs::TransformStamped::ConstPtr & msg)

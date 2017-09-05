@@ -49,13 +49,15 @@ public:
     boost::thread *thread;
     ros::NodeHandle *nodehandle;
     rosbridge *parent;
-    double offset[3];
 
     void offsetCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr & msg)
     {
-        offset[0] = msg->pose.pose.position.x;
-        offset[1] = msg->pose.pose.position.y;
-        offset[2] = msg->pose.pose.position.z;
+        offset3d offset;
+
+        offset.x = msg->pose.pose.position.x;
+        offset.y = msg->pose.pose.position.y;
+        offset.z = msg->pose.pose.position.z;
+        parent->setOffset(offset);
     }
 
     void poseCallback(const geometry_msgs::TransformStamped::ConstPtr & msg)
@@ -84,9 +86,11 @@ public:
         rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
         rosbridgemessage_flightcontrol_t *payload = (rosbridgemessage_flightcontrol_t *)message->data;
 
-        payload->control[0] = msg->position.x - offset[0];
-        payload->control[1] = msg->position.y - offset[1];
-        payload->control[2] = msg->position.z - offset[2];
+        offset3d offset = parent->getOffset();
+
+        payload->control[0] = msg->position.x - offset.x;
+        payload->control[1] = msg->position.y - offset.y;
+        payload->control[2] = msg->position.z - offset.z;
         payload->control[3] = 0;
         payload->poi[0]     = msg->POI.x;
         payload->poi[1]     = msg->POI.y;
@@ -110,9 +114,12 @@ public:
         ros::Subscriber subscriber2 = nodehandle->subscribe(parent->getNameSpace() + "/command", 10, &writethread_priv::commandCallback, this);
         ros::Subscriber subscriber3 = nodehandle->subscribe(parent->getNameSpace() + "/offset", 10, &writethread_priv::offsetCallback, this);
 
-        offset[0] = 0.0;
-        offset[1] = 0.0;
-        offset[2] = 0.0;
+        offset3d offset;
+
+        offset.x = 0.0;
+        offset.y = 0.0;
+        offset.z = 0.0;
+        parent->setOffset(offset);
 
         while (ros::ok()) {
             uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];

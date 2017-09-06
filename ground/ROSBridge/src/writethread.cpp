@@ -92,9 +92,9 @@ public:
         payload->control[1] = msg->position.y - offset.y;
         payload->control[2] = msg->position.z - offset.z;
         payload->control[3] = 0;
-        payload->poi[0]     = msg->POI.x;
-        payload->poi[1]     = msg->POI.y;
-        payload->poi[2]     = msg->POI.z;
+        payload->poi[0]     = msg->POI.x - offset.x;
+        payload->poi[1]     = msg->POI.y - offset.y;
+        payload->poi[2]     = msg->POI.z - offset.z;
         payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_FLIGHTCONTROL;

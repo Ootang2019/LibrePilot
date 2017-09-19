@@ -55,7 +55,7 @@ public:
     uint8_t rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t rx_length;
     rosbridge *parent;
-    ros::Publisher state_pub, state2_pub, state3_pub, state4_pub, imu_pub, gyro_bias_pub;
+    ros::Publisher state_pub, state2_pub, uavpose_corrected_pub, uavpose_pub, state4_pub, imu_pub, gyro_bias_pub;
     uint32_t sequence;
     uint32_t imusequence;
 
@@ -315,7 +315,12 @@ public:
 
         state_pub.publish(odometry);
         state2_pub.publish(pose);
-        state3_pub.publish(uavpose);
+        uavpose_pub.publish(uavpose);
+        offset3d offset = parent->getOffset();
+        uavpose.position.x += offset.x;
+        uavpose.position.y += offset.y;
+        uavpose.position.z += offset.z;
+        uavpose_corrected_pub.publish(uavpose);
         state4_pub.publish(transmitter);
         // parent->rosinfoPrint("state published");
     }
@@ -351,7 +356,8 @@ public:
         rx_length     = 0;
         state_pub     = nodehandle->advertise<nav_msgs::Odometry>(parent->getNameSpace() + "/Octocopter", 10);
         state2_pub    = nodehandle->advertise<geometry_msgs::PoseStamped>(parent->getNameSpace() + "/octoPose", 10);
-        state3_pub    = nodehandle->advertise<uav_msgs::uav_pose>(parent->getNameSpace() + "/pose", 10);
+        uavpose_pub   = nodehandle->advertise<uav_msgs::uav_pose>(parent->getNameSpace() + "/pose/raw", 10);
+        uavpose_corrected_pub = nodehandle->advertise<uav_msgs::uav_pose>(parent->getNameSpace() + "/pose", 10);
         state4_pub    = nodehandle->advertise<librepilot::TransmitterInfo>(parent->getNameSpace() + "/TransmitterInfo", 10);
         imu_pub       = nodehandle->advertise<sensor_msgs::Imu>(parent->getNameSpace() + "/Imu", 10);
         gyro_bias_pub = nodehandle->advertise<librepilot::gyro_bias>(parent->getNameSpace() + "/gyrobias", 10);

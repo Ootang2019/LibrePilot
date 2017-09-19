@@ -41,6 +41,12 @@
 namespace librepilot {
 class rosbridge_priv;
 
+typedef struct {
+    double x;
+    double y;
+    double z;
+} offset3d;
+
 class rosbridge {
 public:
     rosbridge(int argc, char * *argv);
@@ -52,6 +58,8 @@ public:
     int serialWrite(uint8_t *buffer, size_t length);
     void rosinfoPrint(const char *bla);
     std::string getNameSpace();
+    void setOffset(offset3d &offset);
+    offset3d getOffset();
 
 private:
     rosbridge_priv *instance;

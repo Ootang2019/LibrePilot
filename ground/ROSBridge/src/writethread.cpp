@@ -34,6 +34,7 @@
 #include "rosbridge.h"
 #include "std_msgs/String.h"
 #include "geometry_msgs/TransformStamped.h"
+#include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "uav_msgs/uav_pose.h"
 #include <sstream>
 #include "boost/thread.hpp"
@@ -48,6 +49,16 @@ public:
     boost::thread *thread;
     ros::NodeHandle *nodehandle;
     rosbridge *parent;
+
+    void offsetCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr & msg)
+    {
+        offset3d offset;
+
+        offset.x = msg->pose.pose.position.x;
+        offset.y = msg->pose.pose.position.y;
+        offset.z = msg->pose.pose.position.z;
+        parent->setOffset(offset);
+    }
 
     void poseCallback(const geometry_msgs::TransformStamped::ConstPtr & msg)
     {
@@ -75,13 +86,15 @@ public:
         rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
         rosbridgemessage_flightcontrol_t *payload = (rosbridgemessage_flightcontrol_t *)message->data;
 
-        payload->control[0] = msg->position.x;
-        payload->control[1] = msg->position.y;
-        payload->control[2] = msg->position.z;
+        offset3d offset = parent->getOffset();
+
+        payload->control[0] = msg->position.x - offset.x;
+        payload->control[1] = msg->position.y - offset.y;
+        payload->control[2] = msg->position.z - offset.z;
         payload->control[3] = 0;
-        payload->poi[0]     = msg->POI.x;
-        payload->poi[1]     = msg->POI.y;
-        payload->poi[2]     = msg->POI.z;
+        payload->poi[0]     = msg->POI.x - offset.x;
+        payload->poi[1]     = msg->POI.y - offset.y;
+        payload->poi[2]     = msg->POI.z - offset.z;
         payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_FLIGHTCONTROL;
@@ -99,6 +112,14 @@ public:
 
         ros::Subscriber subscriber1 = nodehandle->subscribe("vicon/octocopter/frame", 10, &writethread_priv::poseCallback, this);
         ros::Subscriber subscriber2 = nodehandle->subscribe(parent->getNameSpace() + "/command", 10, &writethread_priv::commandCallback, this);
+        ros::Subscriber subscriber3 = nodehandle->subscribe(parent->getNameSpace() + "/offset", 10, &writethread_priv::offsetCallback, this);
+
+        offset3d offset;
+
+        offset.x = 0.0;
+        offset.y = 0.0;
+        offset.z = 0.0;
+        parent->setOffset(offset);
 
         while (ros::ok()) {
             uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];

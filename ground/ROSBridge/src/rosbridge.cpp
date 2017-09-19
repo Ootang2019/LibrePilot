@@ -65,6 +65,7 @@ public:
     std::string nameSpace;
     boost::thread *thread;
     volatile int canary;
+    offset3d offset;
     // ...
     void run()
     {
@@ -158,6 +159,19 @@ void rosbridge::rosinfoPrint(const char *bla)
     instance->ROSinfo_Mutex.lock();
     ROS_INFO("%s", bla);
     instance->ROSinfo_Mutex.unlock();
+}
+void rosbridge::setOffset(offset3d &offset)
+{
+    instance->ROSinfo_Mutex.lock();
+    instance->offset = offset;
+    instance->ROSinfo_Mutex.unlock();
+}
+offset3d rosbridge::getOffset()
+{
+    instance->ROSinfo_Mutex.lock();
+    offset3d tmp = instance->offset;
+    instance->ROSinfo_Mutex.unlock();
+    return tmp;
 }
 
 std::string rosbridge::getNameSpace()

@@ -1,3 +1,16 @@
+About AIRCAP
+
+### Aerial Outdoor Motion Capture (AirCap) [Project website](https://ps.is.tue.mpg.de/research_projects/aircap)
+
+Aircap is a research project by the Max Planck Institute for Intelligent Systems
+
+We are using OpenPilot Revolution flight controllers on our aerial vehicles.
+
+To integrate these into ROS, we made modifications to the Open Source Avionics System: Librepilot.
+
+Please see the file aircap_howto.txt for details
+
+
 About the LibrePilot Project
 ============================
 

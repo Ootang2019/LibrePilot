@@ -1,4 +1,5 @@
 About AIRCAP
+============
 
 ### Aerial Outdoor Motion Capture (AirCap) [Project website](https://ps.is.tue.mpg.de/research_projects/aircap)
 

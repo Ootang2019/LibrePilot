@@ -38,6 +38,7 @@
 #include "taskinfo.h"
 #include "callbackinfo.h"
 #include "insgps.h"
+#include "CoordinateConversions.h"
 /*
    #include "receiverstatus.h"
    #include "flightmodesettings.h"
@@ -417,6 +418,38 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
         pathDesired.StartingVelocity = 0.0f;
         pathDesired.EndingVelocity   = 0.0f;
         pathDesired.Mode = PATHDESIRED_MODE_GOTOENDPOINT;
+    }
+    break;
+    case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_VECTOR:
+    {
+        FlightModeSettingsPositionHoldOffsetData offset;
+        FlightModeSettingsPositionHoldOffsetGet(&offset);
+        PositionStateData curpos;
+        PositionStateGet(&curpos);
+        if (
+            curpos.North < settings.GeoFenceBoxMin.North || curpos.North > settings.GeoFenceBoxMax.North ||
+            curpos.East < settings.GeoFenceBoxMin.East || curpos.East > settings.GeoFenceBoxMax.East ||
+            curpos.Down < settings.GeoFenceBoxMin.Down || curpos.Down > settings.GeoFenceBoxMax.Down) {
+            // outside of safebox, fly back to safebox
+            pathDesired.End.North        = (settings.GeoFenceBoxMin.North + settings.GeoFenceBoxMax.North) / 2.0f;
+            pathDesired.End.East         = (settings.GeoFenceBoxMin.East + settings.GeoFenceBoxMax.East) / 2.0f;
+            pathDesired.End.Down         = (settings.GeoFenceBoxMin.Down + settings.GeoFenceBoxMax.Down) / 2.0f;
+            pathDesired.Start.North      = curpos.North;
+            pathDesired.Start.East       = curpos.East;
+            pathDesired.Start.Down       = curpos.Down;
+            pathDesired.StartingVelocity = 1.0f;
+            pathDesired.EndingVelocity   = 0.0f;
+        } else {
+            pathDesired.Start.North      = data->control[0];
+            pathDesired.Start.East       = data->control[1];
+            pathDesired.Start.Down       = data->control[2];
+            pathDesired.End.North        = data->control[0] + data->vel[0];
+            pathDesired.End.East         = data->control[1] + data->vel[1];
+            pathDesired.End.Down         = data->control[2] + data->vel[2];
+            pathDesired.StartingVelocity = VectorMagnitude(data->vel);
+            pathDesired.EndingVelocity   = pathDesired.StartingVelocity;
+        }
+        pathDesired.Mode = PATHDESIRED_MODE_FOLLOWVECTOR;
     }
     break;
     case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ATTITUDE:

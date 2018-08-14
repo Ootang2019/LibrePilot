@@ -66,10 +66,9 @@ public:
         rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
         rosbridgemessage_pos_estimate_t *payload = (rosbridgemessage_pos_estimate_t *)message->data;
 
-        // apply ENU to NED conversion - switch x/y, reverse z
-        payload->position[0] = msg->transform.translation.y;
-        payload->position[1] = msg->transform.translation.x;
-        payload->position[2] = -msg->transform.translation.z;
+        payload->position[0] = msg->transform.translation.x;
+        payload->position[1] = msg->transform.translation.y;
+        payload->position[2] = msg->transform.translation.z;
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_POS_ESTIMATE;
         message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
@@ -92,10 +91,13 @@ public:
         payload->control[1] = msg->position.y - offset.y;
         payload->control[2] = msg->position.z - offset.z;
         payload->control[3] = 0;
+        payload->vel[0]     = msg->velocity.x;
+        payload->vel[1]     = msg->velocity.y;
+        payload->vel[2]     = msg->velocity.z;
         payload->poi[0]     = msg->POI.x - offset.x;
         payload->poi[1]     = msg->POI.y - offset.y;
         payload->poi[2]     = msg->POI.z - offset.z;
-        payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
+        payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_VECTOR;
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_FLIGHTCONTROL;
         message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];

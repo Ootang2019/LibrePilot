@@ -97,7 +97,7 @@ public:
         payload->poi[0]     = msg->POI.x - offset.x;
         payload->poi[1]     = msg->POI.y - offset.y;
         payload->poi[2]     = msg->POI.z - offset.z;
-        payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_VECTOR;
+        payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_FLIGHTCONTROL;
         message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];

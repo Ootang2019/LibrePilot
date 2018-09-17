@@ -421,8 +421,7 @@ arm_sdk_version:
 define ARM_GCC_VERSION_CHECK_TEMPLATE
 	if ! $(ARM_SDK_PREFIX)gcc --version --specs=nano.specs >/dev/null 2>&1; then \
 		$(ECHO) $(MSG_NOTICE) Please install ARM toolchain 4.8 2014q1 using \'make arm_sdk_install\' && \
-		$(ECHO) $(MSG_NOTICE) Older ARM SDKs do not support new \'--specs=nano.specs\' option && \
-		exit 1; \
+		$(ECHO) $(MSG_NOTICE) Older ARM SDKs do not support new \'--specs=nano.specs\' option; \
 	fi
 endef
 

@@ -69,10 +69,12 @@ typedef struct {
 typedef enum {
     ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ATTITUDE,
     ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT,
+    ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_VECTOR,
 } rosbridgemessage_flightcontrol_mode_t;
 
 typedef struct {
     float    control[4];
+    float    vel[4];
     float    poi[3];
     uint32_t mode;
 } rosbridgemessage_flightcontrol_t;

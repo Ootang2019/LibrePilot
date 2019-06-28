@@ -83,6 +83,8 @@
 
 #include "pios_sensors.h"
 
+#include <pios_board_io.h>
+
 #if defined(PIOS_INCLUDE_ROS_BRIDGE)
 
 #include <uavorosbridgemessage_priv.h>

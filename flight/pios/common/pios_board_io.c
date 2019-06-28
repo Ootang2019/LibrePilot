@@ -96,6 +96,7 @@ uint32_t pios_openlrs_id; /* OpenLRS handle */
 
 uint32_t pios_com_hkosd_id; /* HK OSD ?? */
 uint32_t pios_com_msp_id; /* MSP */
+uint32_t pios_com_ros_id; /* ROSBridge */
 uint32_t pios_com_mavlink_id; /* MAVLink */
 uint32_t pios_com_frsky_sensorhub_id; /* Frsky Sensorhub */
 uint32_t pios_com_vcp_id; /* USB VCP */

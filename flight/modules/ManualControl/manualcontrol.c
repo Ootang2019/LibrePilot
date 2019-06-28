@@ -167,15 +167,10 @@ int32_t ManualControlInitialize()
 
     ManualControlCommandInitialize();
     FlightStatusInitialize();
-    ManualControlSettingsInitialize();
-    FlightModeSettingsInitialize();
-    SystemSettingsInitialize();
-    StabilizationSettingsInitialize();
     AccessoryDesiredInitialize();
 #ifndef PIOS_EXCLUDE_ADVANCED_FEATURES
     SystemAlarmsInitialize();
     VtolSelfTuningStatsInitialize();
-    VtolPathFollowerSettingsInitialize();
     VtolPathFollowerSettingsConnectCallback(&SettingsUpdatedCb);
     SystemSettingsConnectCallback(&SettingsUpdatedCb);
 #endif /* ifndef PIOS_EXCLUDE_ADVANCED_FEATURES */
@@ -500,7 +495,8 @@ static void manualControlTask(void)
     if (alwaysStabilizedSwitch) {
         if (acc.AccessoryVal <= -ALWAYSTABILIZEACCESSORY_THRESHOLD) {
             newAlwaysStabilized = FLIGHTSTATUS_ALWAYSSTABILIZEWHENARMED_FALSE;
-        } else if (acc.AccessoryVal >= ALWAYSTABILIZEACCESSORY_THRESHOLD) {
+        } else if ((acc.AccessoryVal >= ALWAYSTABILIZEACCESSORY_THRESHOLD) &&
+                   (cmd.Throttle >= modeSettings.AlwaysStabilizeWhenArmedThrottleThreshold)) {
             newAlwaysStabilized = FLIGHTSTATUS_ALWAYSSTABILIZEWHENARMED_TRUE;
         }
     } else {

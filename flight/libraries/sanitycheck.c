@@ -73,11 +73,13 @@ int32_t configuration_check()
 
     // Classify navigation capability
 #ifdef REVOLUTION
-    RevoSettingsInitialize();
     RevoSettingsFusionAlgorithmOptions revoFusion;
     RevoSettingsFusionAlgorithmGet(&revoFusion);
     bool navCapableFusion;
     switch (revoFusion) {
+    case REVOSETTINGS_FUSIONALGORITHM_COMPLEMENTARYGPSOUTDOOR:
+        navCapableFusion = (GetCurrentFrameType() == FRAME_TYPE_FIXED_WING) ? true : false;
+        break;
     case REVOSETTINGS_FUSIONALGORITHM_COMPLEMENTARYMAGGPSOUTDOOR:
     case REVOSETTINGS_FUSIONALGORITHM_GPSNAVIGATIONINS13:
     case REVOSETTINGS_FUSIONALGORITHM_GPSNAVIGATIONINS13CF:

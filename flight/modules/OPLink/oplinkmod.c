@@ -122,6 +122,11 @@ static void systemTask(__attribute__((unused)) void *parameters)
     while (!initTaskDone) {
         vTaskDelay(10);
     }
+
+#ifndef PIOS_INCLUDE_WDG
+// if no watchdog is enabled, don't reset watchdog in MODULE_TASKCREATE_ALL loop
+#define PIOS_WDG_Clear()
+#endif
     /* create all modules thread */
     MODULE_TASKCREATE_ALL;
 
@@ -148,9 +153,6 @@ static void systemTask(__attribute__((unused)) void *parameters)
         // Update the OPLinkStatus UAVO
         OPLinkStatusData oplinkStatus;
         OPLinkStatusGet(&oplinkStatus);
-
-        // Get the other device stats.
-        PIOS_RFM22B_GetPairStats(pios_rfm22b_id, oplinkStatus.PairIDs, oplinkStatus.PairSignalStrengths, OPLINKSTATUS_PAIRIDS_NUMELEM);
 
         // Get the stats from the radio device
         struct rfm22b_stats radio_stats;

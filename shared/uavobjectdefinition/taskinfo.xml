@@ -1,7 +1,7 @@
 <xml>
     <object name="TaskInfo" singleinstance="true" settings="false" category="System">
-        <description>Task information</description>
-        <field name="StackRemaining" units="bytes" type="uint16">
+	<description>Task information</description>
+	<field name="StackRemaining" units="bytes" type="uint16">
 		<elementnames>
 			<!-- system -->
 			<elementname>System</elementname>
@@ -34,8 +34,9 @@
 			<elementname>UAVOHoTTBridge</elementname>
 			<elementname>UAVOMSPBridge</elementname>
 			<elementname>UAVOROSBridge</elementname>
-			<elementname>AutoTune</elementname>
+			<elementname>UAVOFrskySensorHubBridge</elementname>
 			<elementname>UAVOMAVLinkBridge</elementname>
+			<elementname>AutoTune</elementname>
 		</elementnames>
 	</field> 
 	<field name="Running" units="bool" type="enum">
@@ -71,8 +72,9 @@
 			<elementname>UAVOHoTTBridge</elementname>
 			<elementname>UAVOMSPBridge</elementname>
 			<elementname>UAVOROSBridge</elementname>
-			<elementname>AutoTune</elementname>
+			<elementname>UAVOFrskySensorHubBridge</elementname>
 			<elementname>UAVOMAVLinkBridge</elementname>
+			<elementname>AutoTune</elementname>
 		</elementnames>
 		<options>
 			<option>False</option>
@@ -112,8 +114,9 @@
 			<elementname>UAVOHoTTBridge</elementname>
 			<elementname>UAVOMSPBridge</elementname>
 			<elementname>UAVOROSBridge</elementname>
-			<elementname>AutoTune</elementname>
+			<elementname>UAVOFrskySensorHubBridge</elementname>
 			<elementname>UAVOMAVLinkBridge</elementname>
+			<elementname>AutoTune</elementname>
 		</elementnames>
 	</field> 
         <access gcs="readonly" flight="readwrite"/>

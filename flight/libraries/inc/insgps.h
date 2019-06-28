@@ -58,7 +58,7 @@ void INSGPSInit();
 void INSStatePrediction(const float gyro_data[3], const float accel_data[3], float dT);
 void INSCovariancePrediction(float dT);
 void INSCorrection(const float mag_data[3], const float Pos[3], const float Vel[3],
-                   float BaroAlt, uint16_t SensorsUsed);
+                   const float BaroAlt, uint16_t SensorsUsed);
 void INSResetP(const float PDiag[13]);
 void INSGetVariance(float PDiag[13]);
 void INSGetPAddress(float *address[13]);

@@ -120,6 +120,18 @@ SetupWizard::CONTROLLER_TYPE ControllerPage::getControllerType()
     case 0x9201:
         return SetupWizard::CONTROLLER_SPARKY2;
 
+    case 0x1001:
+        return SetupWizard::CONTROLLER_SPRACINGF3;
+
+    case 0x1002:
+        return SetupWizard::CONTROLLER_SPRACINGF3EVO;
+
+    case 0x1005:
+        return SetupWizard::CONTROLLER_PIKOBLX;
+
+    case 0x1006:
+        return SetupWizard::CONTROLLER_TINYFISH;
+
     default:
         return SetupWizard::CONTROLLER_UNKNOWN;
     }
@@ -143,6 +155,9 @@ void ControllerPage::setupBoardTypes()
     ui->boardTypeCombo->addItem(tr("OpenPilot DiscoveryF4"), SetupWizard::CONTROLLER_DISCOVERYF4);
     ui->boardTypeCombo->addItem(tr("OpenPilot Nano"), SetupWizard::CONTROLLER_NANO);
     ui->boardTypeCombo->addItem(tr("TauLabs Sparky 2.0"), SetupWizard::CONTROLLER_SPARKY2);
+    ui->boardTypeCombo->addItem(tr("SPRacing F3"), SetupWizard::CONTROLLER_SPRACINGF3);
+    ui->boardTypeCombo->addItem(tr("SPRacing F3 EVO"), SetupWizard::CONTROLLER_SPRACINGF3EVO);
+    ui->boardTypeCombo->addItem(tr("PikoBLX"), SetupWizard::CONTROLLER_PIKOBLX);
 }
 
 void ControllerPage::setControllerType(SetupWizard::CONTROLLER_TYPE type)
@@ -201,40 +216,53 @@ void ControllerPage::connectionStatusChanged()
 
         SetupWizard::CONTROLLER_TYPE type = getControllerType();
         setControllerType(type);
-        QPixmap boardPic;
-        QSize picSize = QSize(250, 250);
 
         switch (type) {
         case SetupWizard::CONTROLLER_CC:
-            boardPic.load(":/configgadget/images/coptercontrol.svg");
-            ui->boardImg->setPixmap(boardPic.scaled(picSize, Qt::KeepAspectRatio));
+            ui->boardImg->load(QString(":/configgadget/images/coptercontrol.svg"));
             break;
 
         case SetupWizard::CONTROLLER_CC3D:
-            boardPic.load(":/configgadget/images/cc3d_top.png");
-            ui->boardImg->setPixmap(boardPic.scaled(picSize, Qt::KeepAspectRatio));
+            ui->boardImg->load(QString(":/configgadget/images/cc3d.svg"));
             break;
 
         case SetupWizard::CONTROLLER_REVO:
         case SetupWizard::CONTROLLER_DISCOVERYF4:
-            boardPic.load(":/configgadget/images/revolution_top.png");
-            ui->boardImg->setPixmap(boardPic.scaled(picSize, Qt::KeepAspectRatio));
+            ui->boardImg->load(QString(":/configgadget/images/revolution.svg"));
             break;
 
         case SetupWizard::CONTROLLER_NANO:
-            boardPic.load(":/configgadget/images/nano_top.png");
-            ui->boardImg->setPixmap(boardPic.scaled(picSize, Qt::KeepAspectRatio));
+            ui->boardImg->load(QString(":/configgadget/images/revo_nano.svg"));
             break;
 
         case SetupWizard::CONTROLLER_SPARKY2:
-            boardPic.load(":/configgadget/images/sparky2_top.png");
-            ui->boardImg->setPixmap(boardPic.scaled(picSize, Qt::KeepAspectRatio));
+            ui->boardImg->load(QString(":/configgadget/images/sparky2.svg"));
+            break;
+
+        case SetupWizard::CONTROLLER_SPRACINGF3:
+            ui->boardImg->load(QString(":/configgadget/images/spracingf3.svg"));
+            break;
+
+        case SetupWizard::CONTROLLER_SPRACINGF3EVO:
+            ui->boardImg->load(QString(":/configgadget/images/spracingf3evo.svg"));
+            break;
+
+        case SetupWizard::CONTROLLER_PIKOBLX:
+            ui->boardImg->load(QString(":/configgadget/images/pikoblx.svg"));
+            break;
+
+        case SetupWizard::CONTROLLER_TINYFISH:
+            ui->boardImg->load(QString(":/configgadget/images/tinyfish.svg"));
             break;
 
         default:
-            ui->boardImg->setPixmap(QPixmap());
+            ui->boardImg->load(QString(""));
             break;
         }
+        QSize picSize = ui->boardImg->sizeHint();
+        picSize.scale(250, 250, Qt::KeepAspectRatio);
+        ui->boardImg->setFixedSize(picSize);
+        ui->boardImg->show();
         qDebug() << "Connection status changed: Connected, controller type: " << getControllerType();
     } else {
         ui->deviceCombo->setEnabled(true);
@@ -242,7 +270,7 @@ void ControllerPage::connectionStatusChanged()
         ui->boardTypeCombo->setEnabled(false);
         ui->boardTypeCombo->model()->setData(ui->boardTypeCombo->model()->index(0, 0), QVariant(0), Qt::UserRole - 1);
         setControllerType(SetupWizard::CONTROLLER_UNKNOWN);
-        ui->boardImg->setPixmap(QPixmap());
+        ui->boardImg->hide();
         qDebug() << "Connection status changed: Disconnected";
     }
     emit completeChanged();

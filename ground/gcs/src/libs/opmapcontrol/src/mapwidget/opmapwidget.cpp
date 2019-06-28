@@ -107,6 +107,12 @@ void OPMapWidget::SetUavPic(QString UAVPic)
         GPS->SetUavPic(UAVPic);
     }
 }
+void OPMapWidget::SetHomePic(QString HomePic)
+{
+    if (Home != 0) {
+        Home->SetHomePic(HomePic);
+    }
+}
 
 WayPointLine *OPMapWidget::WPLineCreate(WayPointItem *from, WayPointItem *to, QColor color, bool dashed, int width)
 {
@@ -334,11 +340,9 @@ WayPointItem *OPMapWidget::WPInsert(internals::PointLatLng const & coord, int co
 WayPointItem *OPMapWidget::WPInsert(internals::PointLatLng const & coord, int const & altitude, QString const & description, const int &position)
 {
     internals::PointLatLng mcoord;
-    bool reloc = false;
 
-    if (mcoord == internals::PointLatLng(0, 0)) {
+    if (coord == internals::PointLatLng(0, 0)) {
         mcoord = CurrentPosition();
-        reloc  = true;
     } else {
         mcoord = coord;
     }
@@ -347,9 +351,7 @@ WayPointItem *OPMapWidget::WPInsert(internals::PointLatLng const & coord, int co
     ConnectWP(item);
     item->setParentItem(map);
     emit WPInserted(position, item);
-    if (reloc) {
-        emit WPValuesChanged(item);
-    }
+    emit WPValuesChanged(item);
     setOverlayOpacity(overlayOpacity);
     return item;
 }

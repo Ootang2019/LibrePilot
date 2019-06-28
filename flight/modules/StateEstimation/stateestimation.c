@@ -155,6 +155,7 @@ static stateFilter airFilter;
 static stateFilter stationaryFilter;
 static stateFilter llaFilter;
 static stateFilter cfFilter;
+static stateFilter cfhFilter;
 static stateFilter cfmFilter;
 static stateFilter ekf13iFilter;
 static stateFilter ekf13Filter;
@@ -166,6 +167,12 @@ static float gyroRaw[3];
 static float gyroDelta[3];
 
 // preconfigured filter chains selectable via revoSettings.FusionAlgorithm
+
+static const filterPipeline *acroQueue = &(filterPipeline) {
+    .filter = &cfFilter,
+    .next   = NULL,
+};
+
 static const filterPipeline *cfQueue = &(filterPipeline) {
     .filter = &airFilter,
     .next   = &(filterPipeline) {
@@ -175,6 +182,22 @@ static const filterPipeline *cfQueue = &(filterPipeline) {
             .next   = &(filterPipeline) {
                 .filter = &cfFilter,
                 .next   = NULL,
+            }
+        }
+    }
+};
+static const filterPipeline *cfgpsQueue = &(filterPipeline) {
+    .filter = &airFilter,
+    .next   = &(filterPipeline) {
+        .filter = &llaFilter,
+        .next   = &(filterPipeline) {
+            .filter = &baroiFilter,
+            .next   = &(filterPipeline) {
+                .filter = &altitudeFilter,
+                .next   = &(filterPipeline) {
+                    .filter = &cfhFilter,
+                    .next   = NULL,
+                }
             }
         }
     }
@@ -321,8 +344,6 @@ static inline int32_t maxint32_t(int32_t a, int32_t b)
  */
 int32_t StateEstimationInitialize(void)
 {
-    RevoSettingsInitialize();
-
     GyroSensorInitialize();
     MagSensorInitialize();
     AuxMagSensorInitialize();
@@ -332,15 +353,12 @@ int32_t StateEstimationInitialize(void)
     GPSPositionSensorInitialize();
     AUXPositionSensorInitialize();
 
-    HomeLocationInitialize();
-
     GyroStateInitialize();
     AccelStateInitialize();
     MagStateInitialize();
     AirspeedStateInitialize();
     PositionStateInitialize();
     VelocityStateInitialize();
-    AuxMagSettingsInitialize();
 
     RevoSettingsConnectCallback(&settingsUpdatedCb);
 
@@ -367,6 +385,7 @@ int32_t StateEstimationInitialize(void)
     stack_required = maxint32_t(stack_required, filterStationaryInitialize(&stationaryFilter));
     stack_required = maxint32_t(stack_required, filterLLAInitialize(&llaFilter));
     stack_required = maxint32_t(stack_required, filterCFInitialize(&cfFilter));
+    stack_required = maxint32_t(stack_required, filterCFHInitialize(&cfhFilter));
     stack_required = maxint32_t(stack_required, filterCFMInitialize(&cfmFilter));
     stack_required = maxint32_t(stack_required, filterEKF13iInitialize(&ekf13iFilter));
     stack_required = maxint32_t(stack_required, filterEKF13Initialize(&ekf13Filter));
@@ -436,8 +455,16 @@ static void StateEstimationCb(void)
         if (fsarmed == FLIGHTSTATUS_ARMED_DISARMED || fusionAlgorithm == FILTER_INIT_FORCE) {
             const filterPipeline *newFilterChain;
             switch ((RevoSettingsFusionAlgorithmOptions)revoSettings.FusionAlgorithm) {
+            case REVOSETTINGS_FUSIONALGORITHM_ACRONOSENSORS:
+                newFilterChain = acroQueue;
+                break;
             case REVOSETTINGS_FUSIONALGORITHM_BASICCOMPLEMENTARY:
                 newFilterChain = cfQueue;
+                // reinit Mag alarm
+                AlarmsSet(SYSTEMALARMS_ALARM_MAGNETOMETER, SYSTEMALARMS_ALARM_UNINITIALISED);
+                break;
+            case REVOSETTINGS_FUSIONALGORITHM_COMPLEMENTARYGPSOUTDOOR:
+                newFilterChain = cfgpsQueue;
                 // reinit Mag alarm
                 AlarmsSet(SYSTEMALARMS_ALARM_MAGNETOMETER, SYSTEMALARMS_ALARM_UNINITIALISED);
                 break;

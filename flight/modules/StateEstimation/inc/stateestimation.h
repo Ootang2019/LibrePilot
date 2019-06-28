@@ -95,6 +95,7 @@ int32_t filterAirInitialize(stateFilter *handle);
 int32_t filterStationaryInitialize(stateFilter *handle);
 int32_t filterLLAInitialize(stateFilter *handle);
 int32_t filterCFInitialize(stateFilter *handle);
+int32_t filterCFHInitialize(stateFilter *handle);
 int32_t filterCFMInitialize(stateFilter *handle);
 int32_t filterEKF13iInitialize(stateFilter *handle);
 int32_t filterEKF13Initialize(stateFilter *handle);

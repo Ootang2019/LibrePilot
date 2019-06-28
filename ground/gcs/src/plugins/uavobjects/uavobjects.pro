@@ -97,6 +97,11 @@ UAVOBJS = \
     $${UAVOBJ_XML_DIR}/hottbridgesettings.xml \
     $${UAVOBJ_XML_DIR}/hottbridgestatus.xml \
     $${UAVOBJ_XML_DIR}/hwsettings.xml \
+    $${UAVOBJ_XML_DIR}/hwspracingf3settings.xml \
+    $${UAVOBJ_XML_DIR}/hwspracingf3evosettings.xml \
+    $${UAVOBJ_XML_DIR}/hwpikoblxsettings.xml \
+    $${UAVOBJ_XML_DIR}/hwtinyfishsettings.xml \
+    $${UAVOBJ_XML_DIR}/hwdiscoveryf4baresettings.xml \
     $${UAVOBJ_XML_DIR}/i2cstats.xml \
     $${UAVOBJ_XML_DIR}/magsensor.xml \
     $${UAVOBJ_XML_DIR}/magstate.xml \
@@ -150,6 +155,8 @@ UAVOBJS = \
     $${UAVOBJ_XML_DIR}/systemstats.xml \
     $${UAVOBJ_XML_DIR}/takeofflocation.xml \
     $${UAVOBJ_XML_DIR}/taskinfo.xml \
+    $${UAVOBJ_XML_DIR}/temperaturesettings.xml \
+    $${UAVOBJ_XML_DIR}/temperaturestate.xml \
     $${UAVOBJ_XML_DIR}/txpidsettings.xml \
     $${UAVOBJ_XML_DIR}/txpidstatus.xml \
     $${UAVOBJ_XML_DIR}/velocitydesired.xml \

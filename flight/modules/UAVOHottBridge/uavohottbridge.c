@@ -45,6 +45,7 @@
 #include "gyrosensor.h"
 #include "gpspositionsensor.h"
 #include "gpstime.h"
+#include "airspeedstate.h"
 #include "homelocation.h"
 #include "positionstate.h"
 #include "systemalarms.h"
@@ -54,6 +55,8 @@
 #include "objectpersistence.h"
 #include "pios_sensors.h"
 #include "uavohottbridge.h"
+
+#include "pios_board_io.h"
 
 #if defined(PIOS_INCLUDE_HOTT_BRIDGE)
 
@@ -121,8 +124,8 @@ static int32_t uavoHoTTBridgeInitialize(void)
         // HoTT telemetry baudrate is fixed to 19200
 
         PIOS_COM_ChangeBaud(PIOS_COM_HOTT, 19200);
-        PIOS_COM_SetHalfDuplex(PIOS_COM_HOTT, true);
-        HoTTBridgeSettingsInitialize();
+        bool param = true;
+        PIOS_COM_Ioctl(PIOS_COM_HOTT, PIOS_IOCTL_USART_SET_HALFDUPLEX, &param);
         HoTTBridgeStatusInitialize();
 
         // allocate memory for telemetry data
@@ -354,6 +357,7 @@ uint16_t build_GPS_message(struct hott_gps_message *msg)
         msg->gps_fix_char = '2';
         break;
     case GPSPOSITIONSENSOR_STATUS_FIX3D:
+    case GPSPOSITIONSENSOR_STATUS_FIX3DDGNSS:
         msg->gps_fix_char = '3';
         break;
     default:
@@ -448,6 +452,25 @@ uint16_t build_GAM_message(struct hott_gam_message *msg)
     msg->current  = scale_float2uword(current, 10, 0);
     msg->capacity = scale_float2uword(energy, 0.1f, 0);
 
+    // simulate individual cell voltage
+    uint8_t cell_voltage = (telestate->Battery.Voltage > 0) ? scale_float2uint8(telestate->Battery.Voltage / telestate->Battery.NbCells, 50, 0) : 0;
+    msg->cell1 = (telestate->Battery.NbCells >= 1) ? cell_voltage : 0;
+    msg->cell2 = (telestate->Battery.NbCells >= 2) ? cell_voltage : 0;
+    msg->cell3 = (telestate->Battery.NbCells >= 3) ? cell_voltage : 0;
+    msg->cell4 = (telestate->Battery.NbCells >= 4) ? cell_voltage : 0;
+    msg->cell5 = (telestate->Battery.NbCells >= 5) ? cell_voltage : 0;
+    msg->cell6 = (telestate->Battery.NbCells >= 6) ? cell_voltage : 0;
+
+    msg->min_cell_volt     = cell_voltage;
+    msg->min_cell_volt_num = telestate->Battery.NbCells;
+
+    // apply main voltage to batt1 voltage
+    msg->batt1_voltage     = msg->voltage;
+
+    // AirSpeed
+    float airspeed = (telestate->Airspeed.TrueAirspeed > 0) ? telestate->Airspeed.TrueAirspeed : 0;
+    msg->speed    = scale_float2uword(airspeed, MS_TO_KMH, 0);
+
     // pressure kPa to 0.1Bar
     msg->pressure = scale_float2uint8(telestate->Baro.Pressure, 0.1f, 0);
 
@@ -489,9 +512,26 @@ uint16_t build_EAM_message(struct hott_eam_message *msg)
     float voltage = (telestate->Battery.Voltage > 0) ? telestate->Battery.Voltage : 0;
     float current = (telestate->Battery.Current > 0) ? telestate->Battery.Current : 0;
     float energy  = (telestate->Battery.ConsumedEnergy > 0) ? telestate->Battery.ConsumedEnergy : 0;
-    msg->voltage      = scale_float2uword(voltage, 10, 0);
-    msg->current      = scale_float2uword(current, 10, 0);
-    msg->capacity     = scale_float2uword(energy, 0.1f, 0);
+    msg->voltage  = scale_float2uword(voltage, 10, 0);
+    msg->current  = scale_float2uword(current, 10, 0);
+    msg->capacity = scale_float2uword(energy, 0.1f, 0);
+
+    // simulate individual cell voltage
+    uint8_t cell_voltage = (telestate->Battery.Voltage > 0) ? scale_float2uint8(telestate->Battery.Voltage / telestate->Battery.NbCells, 50, 0) : 0;
+    msg->cell1_H = (telestate->Battery.NbCells >= 1) ? cell_voltage : 0;
+    msg->cell2_H = (telestate->Battery.NbCells >= 2) ? cell_voltage : 0;
+    msg->cell3_H = (telestate->Battery.NbCells >= 3) ? cell_voltage : 0;
+    msg->cell4_H = (telestate->Battery.NbCells >= 4) ? cell_voltage : 0;
+    msg->cell5_H = (telestate->Battery.NbCells >= 5) ? cell_voltage : 0;
+    msg->cell6_H = (telestate->Battery.NbCells >= 6) ? cell_voltage : 0;
+    msg->cell7_H = (telestate->Battery.NbCells >= 7) ? cell_voltage : 0;
+
+    // apply main voltage to batt1 voltage
+    msg->batt1_voltage = msg->voltage;
+
+    // AirSpeed
+    float airspeed = (telestate->Airspeed.TrueAirspeed > 0) ? telestate->Airspeed.TrueAirspeed : 0;
+    msg->speed = scale_float2uword(airspeed, MS_TO_KMH, 0);
 
     // temperatures
     msg->temperature1 = scale_float2uint8(telestate->Gyro.temperature, 1, OFFSET_TEMPERATURE);
@@ -594,6 +634,9 @@ void update_telemetrydata()
     if (GPSPositionSensorHandle() != NULL) {
         GPSPositionSensorGet(&telestate->GPS);
     }
+    if (AirspeedStateHandle() != NULL) {
+        AirspeedStateGet(&telestate->Airspeed);
+    }
     if (GPSTimeHandle() != NULL) {
         GPSTimeGet(&telestate->GPStime);
     }
@@ -643,8 +686,9 @@ void update_telemetrydata()
     // calculate altitude relative to start position
     telestate->altitude   = -telestate->Position.Down;
 
-    // check and set min/max values when armed.
-    if (telestate->FlightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED) {
+    // check and set min/max values when armed
+    // and without receiver input for standalone board used as sensor
+    if ((telestate->FlightStatus.Armed == FLIGHTSTATUS_ARMED_ARMED) || ((telestate->SysAlarms.Alarm.Attitude == SYSTEMALARMS_ALARM_OK) && (telestate->SysAlarms.Alarm.Receiver != SYSTEMALARMS_ALARM_OK))) {
         if (telestate->min_altitude > telestate->altitude) {
             telestate->min_altitude = telestate->altitude;
         }
@@ -771,10 +815,12 @@ void update_telemetrydata()
  */
 uint8_t generate_warning()
 {
+    bool gps_ok = (telestate->SysAlarms.Alarm.GPS == SYSTEMALARMS_ALARM_OK);
+
     // set warning tone with hardcoded priority
     if ((telestate->Settings.Warning.MinSpeed == HOTTBRIDGESETTINGS_WARNING_ENABLED) &&
-        (telestate->Settings.Limit.MinSpeed > telestate->GPS.Groundspeed * MS_TO_KMH)) {
-        return HOTT_TONE_A; // maximum speed
+        (telestate->Settings.Limit.MinSpeed > telestate->GPS.Groundspeed * MS_TO_KMH) && gps_ok) {
+        return HOTT_TONE_A; // minimum speed
     }
     if ((telestate->Settings.Warning.NegDifference2 == HOTTBRIDGESETTINGS_WARNING_ENABLED) &&
         (telestate->Settings.Limit.NegDifference2 > telestate->climbrate3s)) {
@@ -785,7 +831,7 @@ uint8_t generate_warning()
         return HOTT_TONE_C; // sink rate 1s
     }
     if ((telestate->Settings.Warning.MaxDistance == HOTTBRIDGESETTINGS_WARNING_ENABLED) &&
-        (telestate->Settings.Limit.MaxDistance < telestate->homedistance)) {
+        (telestate->Settings.Limit.MaxDistance < telestate->homedistance) && gps_ok) {
         return HOTT_TONE_D; // maximum distance
     }
     if ((telestate->Settings.Warning.MinSensor1Temp == HOTTBRIDGESETTINGS_WARNING_ENABLED) &&
@@ -805,7 +851,7 @@ uint8_t generate_warning()
         return HOTT_TONE_I; // maximum temperature sensor 2
     }
     if ((telestate->Settings.Warning.MaxSpeed == HOTTBRIDGESETTINGS_WARNING_ENABLED) &&
-        (telestate->Settings.Limit.MaxSpeed < telestate->GPS.Groundspeed * MS_TO_KMH)) {
+        (telestate->Settings.Limit.MaxSpeed < telestate->GPS.Groundspeed * MS_TO_KMH) && gps_ok) {
         return HOTT_TONE_L; // maximum speed
     }
     if ((telestate->Settings.Warning.PosDifference2 == HOTTBRIDGESETTINGS_WARNING_ENABLED) &&

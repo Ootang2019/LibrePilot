@@ -146,11 +146,9 @@ int32_t ActuatorStart()
 int32_t ActuatorInitialize()
 {
     // Register for notification of changes to ActuatorSettings
-    ActuatorSettingsInitialize();
     ActuatorSettingsConnectCallback(ActuatorSettingsUpdatedCb);
 
     // Register for notification of changes to MixerSettings
-    MixerSettingsInitialize();
     MixerSettingsConnectCallback(MixerSettingsUpdatedCb);
 
     // Listen for ActuatorDesired updates (Primary input to this module)
@@ -163,7 +161,6 @@ int32_t ActuatorInitialize()
 
     // Check if CameraStab module is enabled
     HwSettingsOptionalModulesData optionalModules;
-    HwSettingsInitialize();
     HwSettingsOptionalModulesGet(&optionalModules);
     camStabEnabled    = (optionalModules.CameraStab == HWSETTINGS_OPTIONALMODULES_ENABLED);
     camControlEnabled = (optionalModules.CameraControl == HWSETTINGS_OPTIONALMODULES_ENABLED);
@@ -176,10 +173,8 @@ int32_t ActuatorInitialize()
 #endif
 
 #ifndef PIOS_EXCLUDE_ADVANCED_FEATURES
-    VtolPathFollowerSettingsInitialize();
     VtolPathFollowerSettingsConnectCallback(&SettingsUpdatedCb);
 #endif
-    SystemSettingsInitialize();
     SystemSettingsConnectCallback(&SettingsUpdatedCb);
 
     return 0;
@@ -963,6 +958,13 @@ static int32_t set_channel(uint8_t mixer_channel, uint16_t value)
             // Remap 1000-2000 range to 5-25µs
             PIOS_Servo_Set(actuatorSettings.ChannelAddr[mixer_channel], (value * ACTUATOR_MULTISHOT_PULSE_FACTOR) - 180);
             break;
+        case ACTUATORSETTINGS_BANKMODE_DSHOT:
+            // Remap 0-2000 range to: 0 = disarmed, 1 to 47 = Reserved for special commands, 48 to 2047 = Active throttle control.
+            if (value > 0) {
+                value += 47; /* skip over reserved values */
+            }
+            PIOS_Servo_Set(actuatorSettings.ChannelAddr[mixer_channel], value);
+            break;
         default:
             PIOS_Servo_Set(actuatorSettings.ChannelAddr[mixer_channel], value);
             break;
@@ -991,8 +993,14 @@ static void actuator_update_rate_if_changed(bool force_update)
 {
     static uint16_t prevBankUpdateFreq[ACTUATORSETTINGS_BANKUPDATEFREQ_NUMELEM];
     static uint8_t prevBankMode[ACTUATORSETTINGS_BANKMODE_NUMELEM];
+    static uint16_t prevDShotMode;
     bool updateMode = force_update || (memcmp(prevBankMode, actuatorSettings.BankMode, sizeof(prevBankMode)) != 0);
     bool updateFreq = force_update || (memcmp(prevBankUpdateFreq, actuatorSettings.BankUpdateFreq, sizeof(prevBankUpdateFreq)) != 0);
+
+    if (force_update || (prevDShotMode != actuatorSettings.DShotMode)) {
+        PIOS_Servo_DSHot_Rate(actuatorSettings.DShotMode);
+        prevDShotMode = actuatorSettings.DShotMode;
+    }
 
     // check if any setting is changed
     if (updateMode || updateFreq) {
@@ -1001,29 +1009,35 @@ static void actuator_update_rate_if_changed(bool force_update)
         uint16_t freq[ACTUATORSETTINGS_BANKUPDATEFREQ_NUMELEM];
         uint32_t clock[ACTUATORSETTINGS_BANKUPDATEFREQ_NUMELEM] = { 0 };
         for (uint8_t i = 0; i < ACTUATORSETTINGS_BANKMODE_NUMELEM; i++) {
-            if (force_update || (actuatorSettings.BankMode[i] != prevBankMode[i])) {
-                PIOS_Servo_SetBankMode(i,
-                                       actuatorSettings.BankMode[i] ==
-                                       ACTUATORSETTINGS_BANKMODE_PWM ?
-                                       PIOS_SERVO_BANK_MODE_PWM :
-                                       PIOS_SERVO_BANK_MODE_SINGLE_PULSE
-                                       );
-            }
+            enum pios_servo_bank_mode servo_bank_mode = PIOS_SERVO_BANK_MODE_PWM;
+
             switch (actuatorSettings.BankMode[i]) {
             case ACTUATORSETTINGS_BANKMODE_ONESHOT125:
             case ACTUATORSETTINGS_BANKMODE_ONESHOT42:
             case ACTUATORSETTINGS_BANKMODE_MULTISHOT:
                 freq[i]  = 100; // Value must be small enough so CCr isn't update until the PIOS_Servo_Update is triggered
                 clock[i] = ACTUATOR_ONESHOT_CLOCK; // Setup an 12MHz timer clock
+                servo_bank_mode = PIOS_SERVO_BANK_MODE_SINGLE_PULSE;
                 break;
             case ACTUATORSETTINGS_BANKMODE_PWMSYNC:
                 freq[i]  = 100;
                 clock[i] = ACTUATOR_PWM_CLOCK;
+                servo_bank_mode = PIOS_SERVO_BANK_MODE_SINGLE_PULSE;
+                break;
+            case ACTUATORSETTINGS_BANKMODE_DSHOT:
+                freq[i]  = 100;
+                clock[i] = ACTUATOR_PWM_CLOCK;
+                servo_bank_mode = PIOS_SERVO_BANK_MODE_DSHOT;
                 break;
             default: // PWM
                 freq[i]  = actuatorSettings.BankUpdateFreq[i];
                 clock[i] = ACTUATOR_PWM_CLOCK;
+                servo_bank_mode = PIOS_SERVO_BANK_MODE_PWM;
                 break;
+            }
+
+            if (force_update || (actuatorSettings.BankMode[i] != prevBankMode[i])) {
+                PIOS_Servo_SetBankMode(i, servo_bank_mode);
             }
         }
 
@@ -1044,6 +1058,25 @@ static void actuator_update_rate_if_changed(bool force_update)
     }
 }
 
+static void update_servo_active()
+{
+    /* For each mixer output that is not disabled,
+     * figure out servo address and send allocation map to pios_servo driver.
+     * We need to execute this when either ActuatorSettings or MixerSettings change.
+     */
+    uint32_t servo_active = 0;
+
+    Mixer_t *mixers = (Mixer_t *)&mixerSettings.Mixer1Type;
+
+    for (int ct = 0; ct < MAX_MIX_ACTUATORS; ct++) {
+        if (mixers[ct].type != MIXERSETTINGS_MIXER1TYPE_DISABLED) {
+            servo_active |= 1 << actuatorSettings.ChannelAddr[ct];
+        }
+    }
+
+    PIOS_Servo_SetActive(servo_active);
+}
+
 static void ActuatorSettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
 {
     ActuatorSettingsGet(&actuatorSettings);
@@ -1052,6 +1085,8 @@ static void ActuatorSettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
         spinWhileArmed = false;
     }
     actuator_update_rate_if_changed(false);
+
+    update_servo_active();
 }
 
 static void MixerSettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
@@ -1064,6 +1099,8 @@ static void MixerSettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
             mixer_settings_count++;
         }
     }
+
+    update_servo_active();
 }
 static void SettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
 {

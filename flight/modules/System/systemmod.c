@@ -62,7 +62,7 @@
 #include <pios_notify.h>
 #include <pios_task_monitor.h>
 #include <pios_board_init.h>
-
+#include <pios_board_io.h>
 
 #ifdef PIOS_INCLUDE_INSTRUMENTATION
 #include <instrumentation.h>
@@ -131,6 +131,7 @@ static uint8_t i2c_error_activity[PIOS_I2C_ERROR_COUNT_NUMELEM];
 
 #ifdef PIOS_INCLUDE_RFM22B
 static uint8_t previousRFXtalCap;
+static uint8_t protocol;
 static void oplinkSettingsUpdatedCb(UAVObjEvent *ev);
 #endif
 
@@ -159,7 +160,6 @@ int32_t SystemModStart(void)
 int32_t SystemModInitialize(void)
 {
     // Must registers objects here for system thread because ObjectManager started in OpenPilotInit
-    SystemSettingsInitialize();
     SystemStatsInitialize();
     FlightStatusInitialize();
     ObjectPersistenceInitialize();
@@ -240,6 +240,8 @@ static void systemTask(__attribute__((unused)) void *parameters)
     // Initialize previousRFXtalCap used by callback
     OPLinkSettingsRFXtalCapGet(&previousRFXtalCap);
     OPLinkSettingsConnectCallback(oplinkSettingsUpdatedCb);
+    // Get protocol
+    OPLinkSettingsProtocolGet(&protocol);
 #endif
 
 #ifdef DIAG_TASKS
@@ -287,9 +289,6 @@ static void systemTask(__attribute__((unused)) void *parameters)
         oplinkStatus.HeapRemaining = xPortGetFreeHeapSize();
 
         if (pios_rfm22b_id) {
-            // Get the other device stats.
-            PIOS_RFM22B_GetPairStats(pios_rfm22b_id, oplinkStatus.PairIDs, oplinkStatus.PairSignalStrengths, OPLINKSTATUS_PAIRIDS_NUMELEM);
-
             // Get the stats from the radio device
             struct rfm22b_stats radio_stats;
             PIOS_RFM22B_GetStats(pios_rfm22b_id, &radio_stats);
@@ -336,7 +335,7 @@ static void systemTask(__attribute__((unused)) void *parameters)
             oplinkStatus.RXSeq     = radio_stats.rx_seq;
 
             oplinkStatus.LinkState = radio_stats.link_state;
-        } else {
+        } else if (protocol != OPLINKSETTINGS_PROTOCOL_OPENLRS) {
             oplinkStatus.LinkState = OPLINKSTATUS_LINKSTATE_DISABLED;
         }
         OPLinkStatusSet(&oplinkStatus);
@@ -582,7 +581,11 @@ static uint16_t GetFreeIrqStackSize(void)
 #if !defined(ARCH_POSIX) && !defined(ARCH_WIN32) && defined(CHECK_IRQ_STACK)
     extern uint32_t _irq_stack_top;
     extern uint32_t _irq_stack_end;
-    uint32_t pattern    = 0x0000A5A5;
+#ifdef STM32F3
+    uint32_t pattern    = 0xA5A5A5A5;
+#else
+    uint32_t pattern    = 0xA5A5;
+#endif
     uint32_t *ptr       = &_irq_stack_end;
 
 #if 1 /* the ugly way accurate but takes more time, useful for debugging */

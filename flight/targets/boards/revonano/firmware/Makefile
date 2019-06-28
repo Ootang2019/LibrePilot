@@ -53,9 +53,12 @@ MODULES += Telemetry
 MODULES += Notify
 
 OPTMODULES += AutoTune
+OPTMODULES += Temperature
 OPTMODULES += ComUsbBridge
 OPTMODULES += UAVOMSPBridge
 OPTMODULES += UAVOMavlinkBridge
+OPTMODULES += UAVOFrSKYSensorHubBridge
+OPTMODULES += UAVOHottBridge
 
 SRC += $(FLIGHTLIB)/notification.c
 
@@ -84,11 +87,6 @@ ifndef TESTAPP
     SRC += $(OPUAVOBJ)/eventdispatcher.c
     SRC += $(PIOSCOMMON)/pios_flash_eeprom.c
     SRC += $(PIOSCOMMON)/pios_flashfs_objlist.c
-
-    #ifeq ($(DEBUG), YES)
-    SRC += $(OPSYSTEM)/dcc_stdio.c
-    SRC += $(OPSYSTEM)/cm3_fault_handlers.c
-    #endif
 
     ## Misc library functions
     SRC += $(FLIGHTLIB)/paths.c

@@ -33,7 +33,7 @@
 
 #include "rosbridge.h"
 #include "std_msgs/String.h"
-#include "geometry_msgs/TransformStamped.h"
+#include "geometry_msgs/Vector3Stamped.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "uav_msgs/uav_pose.h"
 #include <sstream>
@@ -60,15 +60,15 @@ public:
         parent->setOffset(offset);
     }
 
-    void poseCallback(const geometry_msgs::TransformStamped::ConstPtr & msg)
+    void poseCallback(const geometry_msgs::Vector3Stamped::ConstPtr & msg)
     {
         uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
         rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
         rosbridgemessage_pos_estimate_t *payload = (rosbridgemessage_pos_estimate_t *)message->data;
 
-        payload->position[0] = msg->transform.translation.x;
-        payload->position[1] = msg->transform.translation.y;
-        payload->position[2] = msg->transform.translation.z;
+        payload->position[0] = msg->vector.x;
+        payload->position[1] = msg->vector.y;
+        payload->position[2] = msg->vector.z;
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_POS_ESTIMATE;
         message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
@@ -77,6 +77,25 @@ public:
         message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
         parent->serialWrite(tx_buffer, message->length + offsetof(rosbridgemessage_t, data));
         parent->rosinfoPrint("received position, sending");
+    }
+
+    void velocityCallback(const geometry_msgs::Vector3Stamped::ConstPtr & msg)
+    {
+        uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
+        rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
+        rosbridgemessage_vel_estimate_t *payload = (rosbridgemessage_vel_estimate_t *)message->data;
+
+        payload->velocity[0] = msg->vector.x;
+        payload->velocity[1] = msg->vector.y;
+        payload->velocity[2] = msg->vector.z;
+        message->magic     = ROSBRIDGEMAGIC;
+        message->type      = ROSBRIDGEMESSAGE_VEL_ESTIMATE;
+        message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - *parent->getStart();
+        message->timestamp = diff.total_microseconds();
+        message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
+        parent->serialWrite(tx_buffer, message->length + offsetof(rosbridgemessage_t, data));
+        parent->rosinfoPrint("received velocity, sending");
     }
 
     void commandCallback(const uav_msgs::uav_pose::ConstPtr & msg)
@@ -112,7 +131,8 @@ public:
     {
         ros::Rate rate(0.1);
 
-        ros::Subscriber subscriber1 = nodehandle->subscribe("vicon/octocopter/frame", 10, &writethread_priv::poseCallback, this);
+        ros::Subscriber subscriber0 = nodehandle->subscribe(parent->getNameSpace() + "/auxposition", 10, &writethread_priv::poseCallback, this);
+        ros::Subscriber subscriber1 = nodehandle->subscribe(parent->getNameSpace() + "/auxvelocity", 10, &writethread_priv::velocityCallback, this);
         ros::Subscriber subscriber2 = nodehandle->subscribe(parent->getNameSpace() + "/command", 10, &writethread_priv::commandCallback, this);
         ros::Subscriber subscriber3 = nodehandle->subscribe(parent->getNameSpace() + "/offset", 10, &writethread_priv::offsetCallback, this);
 

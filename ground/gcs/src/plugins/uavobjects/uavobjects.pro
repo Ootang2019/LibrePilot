@@ -137,6 +137,7 @@ UAVOBJS = \
     $${UAVOBJ_XML_DIR}/rosbridgesettings.xml \
     $${UAVOBJ_XML_DIR}/rosbridgestatus.xml \
     $${UAVOBJ_XML_DIR}/auxpositionsensor.xml \
+    $${UAVOBJ_XML_DIR}/auxvelocitysensor.xml \
     $${UAVOBJ_XML_DIR}/sonaraltitude.xml \
     $${UAVOBJ_XML_DIR}/stabilizationbank.xml \
     $${UAVOBJ_XML_DIR}/stabilizationdesired.xml \

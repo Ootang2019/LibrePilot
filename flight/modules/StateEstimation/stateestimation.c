@@ -41,6 +41,7 @@
 #include <gpspositionsensor.h>
 #include <gpsvelocitysensor.h>
 #include <auxpositionsensor.h>
+#include <auxvelocitysensor.h>
 #include <homelocation.h>
 #include <auxmagsensor.h>
 #include <auxmagsettings.h>
@@ -352,6 +353,7 @@ int32_t StateEstimationInitialize(void)
     GPSVelocitySensorInitialize();
     GPSPositionSensorInitialize();
     AUXPositionSensorInitialize();
+    AUXVelocitySensorInitialize();
 
     GyroStateInitialize();
     AccelStateInitialize();
@@ -374,6 +376,7 @@ int32_t StateEstimationInitialize(void)
     GPSVelocitySensorConnectCallback(&sensorUpdatedCb);
     GPSPositionSensorConnectCallback(&sensorUpdatedCb);
     AUXPositionSensorConnectCallback(&sensorUpdatedCb);
+    AUXVelocitySensorConnectCallback(&sensorUpdatedCb);
 
     uint32_t stack_required = STACK_SIZE_BYTES;
     // Initialize Filters
@@ -530,6 +533,7 @@ static void StateEstimationCb(void)
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_3_DIMENSIONS(MagSensor, boardMag, x, y, z);
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_3_DIMENSIONS(AuxMagSensor, auxMag, x, y, z);
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_3_DIMENSIONS(GPSVelocitySensor, vel, North, East, Down);
+    FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_3_DIMENSIONS(AUXVelocitySensor, vel, North, East, Down);
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_3_DIMENSIONS(AUXPositionSensor, pos, North, East, Down);
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_1_DIMENSION_WITH_CUSTOM_EXTRA_CHECK(BaroSensor, baro, Altitude, true);
     FETCH_SENSOR_FROM_UAVOBJECT_CHECK_AND_LOAD_TO_STATE_2_DIMENSION_WITH_CUSTOM_EXTRA_CHECK(AirspeedSensor, airspeed, CalibratedAirspeed, TrueAirspeed, s.SensorConnected == AIRSPEEDSENSOR_SENSORCONNECTED_TRUE);
@@ -710,6 +714,10 @@ static void sensorUpdatedCb(UAVObjEvent *ev)
 
     if (ev->obj == AUXPositionSensorHandle()) {
         updatedSensors |= SENSORUPDATES_pos;
+    }
+
+    if (ev->obj == AUXVelocitySensorHandle()) {
+        updatedSensors |= SENSORUPDATES_vel;
     }
 
     if (ev->obj == GPSVelocitySensorHandle()) {

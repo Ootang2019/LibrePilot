@@ -132,6 +132,7 @@ UAVOBJSRCFILENAMES += takeofflocation
 UAVOBJSRCFILENAMES += rosbridgesettings
 UAVOBJSRCFILENAMES += rosbridgestatus
 UAVOBJSRCFILENAMES += auxpositionsensor
+UAVOBJSRCFILENAMES += auxvelocitysensor
 UAVOBJSRCFILENAMES += perfcounter
 UAVOBJSRCFILENAMES += systemidentsettings
 UAVOBJSRCFILENAMES += systemidentstate

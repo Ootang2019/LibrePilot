@@ -67,6 +67,7 @@
 #include "accessorydesired.h"
 #include "actuatordesired.h"
 #include "auxpositionsensor.h"
+#include "auxvelocitysensor.h"
 #include "pathdesired.h"
 #include "poilocation.h"
 #include "flightmodesettings.h"
@@ -128,7 +129,7 @@ static int32_t uavoROSBridgeInitialize(void);
 static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
-static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler;
+static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler, vel_estimate_r_handler;
 static ROSBridgeSettingsData settings;
 void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
 void SettingsCb(__attribute__((unused)) UAVObjEvent *ev);
@@ -221,6 +222,9 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
             break;
         case ROSBRIDGEMESSAGE_PONG:
             pong_r_handler(m, message);
+            break;
+        case ROSBRIDGEMESSAGE_VEL_ESTIMATE:
+            vel_estimate_r_handler(m, message);
             break;
         default:
             // do nothing at all and discard the message
@@ -481,6 +485,16 @@ static void pos_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb
     pos.East  = data->position[1];
     pos.Down  = data->position[2];
     AUXPositionSensorSet(&pos);
+}
+static void vel_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    rosbridgemessage_vel_estimate_t *data = (rosbridgemessage_vel_estimate_t *)&(m->data);
+    AUXVelocitySensorData vel;
+
+    vel.North = data->velocity[0];
+    vel.East  = data->velocity[1];
+    vel.Down  = data->velocity[2];
+    AUXVelocitySensorSet(&vel);
 }
 
 static void pong_handler(struct ros_bridge *rb, rosbridgemessage_t *m)

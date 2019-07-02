@@ -44,6 +44,7 @@ typedef enum {
     ROSBRIDGEMESSAGE_IMU_AVERAGE,
     ROSBRIDGEMESSAGE_GYRO_BIAS,
     ROSBRIDGEMESSAGE_GIMBAL_ESTIMATE,
+    ROSBRIDGEMESSAGE_VEL_ESTIMATE,
     ROSBRIDGEMESSAGE_END_ARRAY_SIZE,
 } rosbridgemessagetype_t;
 
@@ -65,6 +66,10 @@ typedef struct {
 typedef struct {
     float position[3];
 } rosbridgemessage_pos_estimate_t;
+
+typedef struct {
+    float velocity[3];
+} rosbridgemessage_vel_estimate_t;
 
 typedef enum {
     ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ATTITUDE,
@@ -123,6 +128,7 @@ static const size_t ROSBRIDGEMESSAGE_SIZES[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     sizeof(rosbridgemessage_imu_average_t),
     sizeof(rosbridgemessage_gyro_bias_t),
     sizeof(rosbridgemessage_gimbal_estimate_t),
+    sizeof(rosbridgemessage_vel_estimate_t),
 };
 
 #define ROSBRIDGEMESSAGE_BUFFERSIZE (offsetof(rosbridgemessage_t, data) + sizeof(rosbridgemessage_fullstate_estimate_t) + 2)

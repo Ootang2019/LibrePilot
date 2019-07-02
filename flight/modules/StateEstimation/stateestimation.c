@@ -373,6 +373,7 @@ int32_t StateEstimationInitialize(void)
     AuxMagSensorConnectCallback(&sensorUpdatedCb);
     GPSVelocitySensorConnectCallback(&sensorUpdatedCb);
     GPSPositionSensorConnectCallback(&sensorUpdatedCb);
+    AUXPositionSensorConnectCallback(&sensorUpdatedCb);
 
     uint32_t stack_required = STACK_SIZE_BYTES;
     // Initialize Filters
@@ -705,6 +706,10 @@ static void sensorUpdatedCb(UAVObjEvent *ev)
 
     if (ev->obj == GPSPositionSensorHandle()) {
         updatedSensors |= SENSORUPDATES_lla;
+    }
+
+    if (ev->obj == AUXPositionSensorHandle()) {
+        updatedSensors |= SENSORUPDATES_pos;
     }
 
     if (ev->obj == GPSVelocitySensorHandle()) {

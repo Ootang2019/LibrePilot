@@ -36,7 +36,7 @@
 #include <QThread>
 #include "QDebug"
 
-#define POINT_SAMPLE_SIZE 50
+#define POINT_SAMPLE_SIZE 250
 #define GRAVITY           9.81f
 #define sign(x)   ((x < 0) ? -1 : 1)
 

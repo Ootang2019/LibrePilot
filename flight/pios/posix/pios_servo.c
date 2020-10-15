@@ -7,7 +7,8 @@
  * @{
  *
  * @file       pios_servo.c
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
+ * @author     The LibrePilot Project, http://www.librepilot.org Copyright (C) 2016.
+ *             The OpenPilot Team, http://www.openpilot.org Copyright (C) 2012.
  * @brief      RC Servo routines (STM32 dependent)
  * @see        The GNU Public License (GPL) Version 3
  *
@@ -27,45 +28,96 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+/*
+ * DShot: Tribute belongs to dRonin, http://dRonin.org/ for sparking the idea of
+ * using gpio bitbang as more general solution over using timer dma.
+ */
 
-/* Project Includes */
 #include "pios.h"
 
-#if defined(PIOS_INCLUDE_SERVO)
+#ifdef PIOS_INCLUDE_SERVO
 
-/* Private Function Prototypes */
+static const struct pios_servo_cfg *servo_cfg;
 
-/* Local Variables */
-static volatile uint16_t ServoPosition[PIOS_SERVO_NUM_TIMERS];
+extern void PIOS_Servo_SetActive( __attribute__((unused)) uint32_t active)
+{
+	return;
+}
+
+extern void PIOS_Servo_Disable()
+{
+	return;
+}
+
+static void PIOS_Servo_SetupBank(__attribute__((unused)) uint8_t bank_nr)
+{
+    return;
+
+}
+
+extern void PIOS_Servo_Enable()
+{
+    return;
+}
+
+void PIOS_Servo_DSHot_Rate(__attribute__((unused)) uint32_t rate_in_khz)
+{
+    return;
+}
 
 /**
  * Initialise Servos
  */
-void PIOS_Servo_Init(void)
-{}
+int32_t PIOS_Servo_Init(const struct pios_servo_cfg *cfg)
+{
+    servo_cfg = cfg;
+    return 0;
+}
+
+void PIOS_Servo_SetBankMode(__attribute__((unused)) uint8_t bank, __attribute__((unused)) uint8_t mode)
+{
+    return;
+}
+
+static void PIOS_Servo_DShot_Update()
+{
+    return;
+}
+
+
+void PIOS_Servo_Update()
+{
+    return;
+}
 /**
  * Set the servo update rate (Max 500Hz)
  * \param[in] array of rates in Hz
  * \param[in] array of timer clocks in Hz
  * \param[in] maximum number of banks
  */
-void PIOS_Servo_SetHz(const uint16_t *speeds, const uint32_t *clock, uint8_t banks)
-{}
+void PIOS_Servo_SetHz(__attribute__((unused)) const uint16_t *speeds,__attribute__((unused))  const uint32_t *clock,__attribute__((unused))  uint8_t banks)
+{
+    return;
+}
 
 /**
  * Set servo position
  * \param[in] Servo Servo number (0-7)
- * \param[in] Position Servo position in milliseconds
+ * \param[in] Position Servo position in microseconds
  */
-void PIOS_Servo_Set(uint8_t Servo, uint16_t Position)
+void PIOS_Servo_Set(__attribute__((unused)) uint8_t servo,__attribute__((unused))  uint16_t position)
 {
-#ifndef PIOS_ENABLE_DEBUG_PINS
-    /* Make sure servo exists */
-    if (Servo < PIOS_SERVO_NUM_OUTPUTS) {
-        /* Update the position */
-        ServoPosition[Servo] = Position;
-    }
-#endif // PIOS_ENABLE_DEBUG_PINS
+    return;
 }
 
-#endif /* if defined(PIOS_INCLUDE_SERVO) */
+uint8_t PIOS_Servo_GetPinBank(__attribute__((unused)) uint8_t pin)
+{
+    return 0;
+}
+
+const struct pios_servo_cfg *PIOS_Servo_GetConfig()
+{
+    return servo_cfg;
+}
+
+#endif /* PIOS_INCLUDE_SERVO */

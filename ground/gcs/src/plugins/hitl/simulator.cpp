@@ -244,12 +244,12 @@ void Simulator::receiveUpdate()
 void Simulator::setupObjects()
 {
     if (settings.gcsReceiverEnabled) {
-        setupInputObject(actCommand, settings.minOutputPeriod); // Input to the simulator
         setupOutputObject(gcsReceiver, settings.minOutputPeriod);
     } else if (settings.manualControlEnabled) {
         setupInputObject(actDesired, settings.minOutputPeriod); // Input to the simulator
     }
 
+    setupInputObject(actCommand, settings.minOutputPeriod); // Input to the simulator
     setupOutputObject(posHome, 10000); // Hardcoded? Bleh.
 
     if (settings.gpsPositionEnabled) {

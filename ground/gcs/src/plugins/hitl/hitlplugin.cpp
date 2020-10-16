@@ -34,6 +34,7 @@
 #include "il2simulator.h"
 #include "xplanesimulator9.h"
 #include "xplanesimulator10.h"
+#include "rossimulator.h"
 
 QList<SimulatorCreator * > HITLPlugin::typeSimulators;
 
@@ -60,6 +61,7 @@ bool HITLPlugin::initialize(const QStringList & args, QString *errMsg)
     addSimulator(new IL2SimulatorCreator("IL2", "IL2"));
     addSimulator(new XplaneSimulatorCreator9("X-Plane9", "X-Plane9"));
     addSimulator(new XplaneSimulatorCreator10("X-Plane10", "X-Plane10"));
+    addSimulator(new ROSSimulatorCreator("ROS", "ROS"));
 
     return true;
 }

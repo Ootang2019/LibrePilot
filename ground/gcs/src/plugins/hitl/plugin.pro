@@ -19,7 +19,8 @@ HEADERS += \
     fgsimulator.h \
     il2simulator.h \
     xplanesimulator9.h \
-    xplanesimulator10.h
+    xplanesimulator10.h \
+    rossimulator.h
 
 SOURCES += \
     hitlplugin.cpp \
@@ -34,7 +35,8 @@ SOURCES += \
     fgsimulator.cpp \
     il2simulator.cpp \
     xplanesimulator9.cpp \
-    xplanesimulator10.cpp
+    xplanesimulator10.cpp \
+    rossimulator.cpp
 
 OTHER_FILES += hitl.pluginspec
 

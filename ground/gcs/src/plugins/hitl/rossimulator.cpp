@@ -161,29 +161,24 @@ void ROSSimulator::processUpdate(const QByteArray & inp)
     float pitch     = fields[7].toFloat();
     // Get yaw (deg)
     float yaw       = fields[8].toFloat();
-    // Get latitude (deg)
-    float latitude  = fields[9].toFloat();
-    // Get longitude (deg)
-    float longitude = fields[10].toFloat();
-    // Get heading (deg)
     // Get airspeed (m/s)
-    float airspeed  = fields[11].toFloat() * KT2MPS;
+    float airspeed  = fields[9].toFloat() * KT2MPS;
     // Get VelocityState Down (m/s)
-    float velocityStateNorth = fields[12].toFloat();
+    float velocityStateNorth = fields[10].toFloat();
     // Get VelocityState East (m/s)
-    float velocityStateEast  = fields[13].toFloat();
+    float velocityStateEast  = fields[11].toFloat();
     // Get VelocityState Down (m/s)
-    float velocityStateDown  = fields[14].toFloat();
+    float velocityStateDown  = fields[12].toFloat();
     // Get PositionState Down (m/s)
-    float positionStateNorth = fields[15].toFloat();
+    float positionStateNorth = fields[13].toFloat();
     // Get PositionState East (m/s)
-    float positionStateEast  = fields[16].toFloat();
+    float positionStateEast  = fields[14].toFloat();
     // Get PositionState Down (m/s)
-    float positionStateDown  = fields[17].toFloat();
+    float positionStateDown  = fields[15].toFloat();
     // Get temperature (degC)
-    float temperature = fields[18].toFloat();
+    float temperature = fields[16].toFloat();
     // Get pressure (Pa)
-    float pressure    = fields[19].toFloat();
+    float pressure    = fields[17].toFloat();
 
     ///////
     // Output formatting

@@ -374,6 +374,7 @@ private:
     static QStringList instances;
     // QList<QScopedPointer<UAVDataObject> > requiredUAVObjects;
     void setupOutputObject(UAVObject *obj, quint32 updatePeriod);
+    void setupOutputOnChangeObject(UAVObject *obj);
     void setupInputObject(UAVObject *obj, quint32 updatePeriod);
     void setupWatchedObject(UAVObject *obj, quint32 updatePeriod);
     void setupObjects();

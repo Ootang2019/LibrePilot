@@ -252,7 +252,7 @@ void Simulator::setupObjects()
     }
 
     setupInputObject(actCommand, settings.minOutputPeriod); // Input to the simulator
-    setupOutputObject(posHome, 10000); // Hardcoded? Bleh.
+    setupOutputOnChangeObject(posHome);
 
     if (settings.gpsPositionEnabled) {
         setupOutputObject(gpsPos, settings.gpsPosRate);
@@ -347,6 +347,24 @@ void Simulator::setupOutputObject(UAVObject *obj, quint32 updatePeriod)
 
     obj->setMetadata(mdata);
 }
+
+void Simulator::setupOutputOnChangeObject(UAVObject *obj)
+{
+    UAVObject::Metadata mdata;
+
+    mdata = obj->getDefaultMetadata();
+
+    UAVObject::SetGcsAccess(mdata, UAVObject::ACCESS_READWRITE);
+    UAVObject::SetGcsTelemetryAcked(mdata, false);
+    UAVObject::SetGcsTelemetryUpdateMode(mdata, UAVObject::UPDATEMODE_ONCHANGE);
+    mdata.gcsTelemetryUpdatePeriod = 0;
+
+    UAVObject::SetFlightAccess(mdata, UAVObject::ACCESS_READONLY);
+    UAVObject::SetFlightTelemetryUpdateMode(mdata, UAVObject::UPDATEMODE_MANUAL);
+
+    obj->setMetadata(mdata);
+}
+
 
 void Simulator::onAutopilotConnect()
 {

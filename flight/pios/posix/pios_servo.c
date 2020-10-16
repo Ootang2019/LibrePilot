@@ -39,31 +39,20 @@
 
 static const struct pios_servo_cfg *servo_cfg;
 
-extern void PIOS_Servo_SetActive( __attribute__((unused)) uint32_t active)
-{
-	return;
-}
+extern void PIOS_Servo_SetActive(__attribute__((unused)) uint32_t active)
+{}
 
 extern void PIOS_Servo_Disable()
-{
-	return;
-}
+{}
 
 static void PIOS_Servo_SetupBank(__attribute__((unused)) uint8_t bank_nr)
-{
-    return;
-
-}
+{}
 
 extern void PIOS_Servo_Enable()
-{
-    return;
-}
+{}
 
 void PIOS_Servo_DSHot_Rate(__attribute__((unused)) uint32_t rate_in_khz)
-{
-    return;
-}
+{}
 
 /**
  * Initialise Servos
@@ -75,40 +64,30 @@ int32_t PIOS_Servo_Init(const struct pios_servo_cfg *cfg)
 }
 
 void PIOS_Servo_SetBankMode(__attribute__((unused)) uint8_t bank, __attribute__((unused)) uint8_t mode)
-{
-    return;
-}
+{}
 
 static void PIOS_Servo_DShot_Update()
-{
-    return;
-}
+{}
 
 
 void PIOS_Servo_Update()
-{
-    return;
-}
+{}
 /**
  * Set the servo update rate (Max 500Hz)
  * \param[in] array of rates in Hz
  * \param[in] array of timer clocks in Hz
  * \param[in] maximum number of banks
  */
-void PIOS_Servo_SetHz(__attribute__((unused)) const uint16_t *speeds,__attribute__((unused))  const uint32_t *clock,__attribute__((unused))  uint8_t banks)
-{
-    return;
-}
+void PIOS_Servo_SetHz(__attribute__((unused)) const uint16_t *speeds, __attribute__((unused))  const uint32_t *clock, __attribute__((unused))  uint8_t banks)
+{}
 
 /**
  * Set servo position
  * \param[in] Servo Servo number (0-7)
  * \param[in] Position Servo position in microseconds
  */
-void PIOS_Servo_Set(__attribute__((unused)) uint8_t servo,__attribute__((unused))  uint16_t position)
-{
-    return;
-}
+void PIOS_Servo_Set(__attribute__((unused)) uint8_t servo, __attribute__((unused))  uint16_t position)
+{}
 
 uint8_t PIOS_Servo_GetPinBank(__attribute__((unused)) uint8_t pin)
 {

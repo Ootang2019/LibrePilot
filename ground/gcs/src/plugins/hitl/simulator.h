@@ -32,9 +32,11 @@
 #include "uavobjectmanager.h"
 
 #include "accelstate.h"
+#include "accelsensor.h"
 #include "actuatorcommand.h"
 #include "actuatordesired.h"
 #include "airspeedstate.h"
+#include "airspeedsensor.h"
 #include "attitudestate.h"
 #include "attitudesettings.h"
 #include "barosensor.h"
@@ -46,6 +48,7 @@
 #include "gpsvelocitysensor.h"
 #include "groundtruth.h"
 #include "gyrostate.h"
+#include "gyrosensor.h"
 #include "homelocation.h"
 #include "manualcontrolcommand.h"
 #include "positionstate.h"
@@ -331,7 +334,9 @@ protected:
     PositionState *posState;
     HomeLocation *posHome;
     AccelState *accelState;
+    AccelSensor *accelSensor;
     GyroState *gyroState;
+    GyroSensor *gyroSensor;
     GCSTelemetryStats *telStats;
     GCSReceiver *gcsReceiver;
     GroundTruth *groundTruth;

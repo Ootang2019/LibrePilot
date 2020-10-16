@@ -156,7 +156,9 @@ void Simulator::onStart()
     attState      = AttitudeState::GetInstance(objManager);
     attSettings   = AttitudeSettings::GetInstance(objManager);
     accelState    = AccelState::GetInstance(objManager);
+    accelSensor   = AccelSensor::GetInstance(objManager);
     gyroState     = GyroState::GetInstance(objManager);
+    gyroSensor    = GyroSensor::GetInstance(objManager);
     gpsPos = GPSPositionSensor::GetInstance(objManager);
     gpsVel = GPSVelocitySensor::GetInstance(objManager);
     telStats      = GCSTelemetryStats::GetInstance(objManager);
@@ -263,13 +265,13 @@ void Simulator::setupObjects()
     }
 
     if (settings.attRawEnabled) {
-        setupOutputObject(accelState, settings.attRawRate);
-        setupOutputObject(gyroState, settings.attRawRate);
-    }
-
-    if (settings.attStateEnabled && settings.attActHW) {
-        setupOutputObject(accelState, settings.attRawRate);
-        setupOutputObject(gyroState, settings.attRawRate);
+        if (settings.attActHW) {
+            setupOutputObject(accelSensor, settings.attRawRate);
+            setupOutputObject(gyroSensor, settings.attRawRate);
+        } else {
+            setupOutputObject(accelState, settings.attRawRate);
+            setupOutputObject(gyroState, settings.attRawRate);
+        }
     }
 
     if (settings.attStateEnabled && !settings.attActHW) {
@@ -753,21 +755,39 @@ void Simulator::updateUAVOs(Output2Hardware out)
     // Update raw attitude sensors
     if (settings.attRawEnabled) {
         if (attRawTime.msecsTo(currentTime) >= settings.attRawRate) {
-            // Update gyroscope sensor data
-            GyroState::DataFields gyroStateData;
-            memset(&gyroStateData, 0, sizeof(GyroState::DataFields));
-            gyroStateData.x = out.rollRate + noise.gyroStateData.x;
-            gyroStateData.y = out.pitchRate + noise.gyroStateData.y;
-            gyroStateData.z = out.yawRate + noise.gyroStateData.z;
-            gyroState->setData(gyroStateData);
+            if (settings.attActHW) {
+                // Update gyroscope sensor data
+                GyroSensor::DataFields gyroSensorData;
+                memset(&gyroSensorData, 0, sizeof(GyroSensor::DataFields));
+                gyroSensorData.x = out.rollRate + noise.gyroStateData.x;
+                gyroSensorData.y = out.pitchRate + noise.gyroStateData.y;
+                gyroSensorData.z = out.yawRate + noise.gyroStateData.z;
+                gyroSensor->setData(gyroSensorData);
 
-            // Update accelerometer sensor data
-            AccelState::DataFields accelStateData;
-            memset(&accelStateData, 0, sizeof(AccelState::DataFields));
-            accelStateData.x = out.accX + noise.accelStateData.x;
-            accelStateData.y = out.accY + noise.accelStateData.y;
-            accelStateData.z = out.accZ + noise.accelStateData.z;
-            accelState->setData(accelStateData);
+                // Update accelerometer sensor data
+                AccelSensor::DataFields accelSensorData;
+                memset(&accelSensorData, 0, sizeof(AccelSensor::DataFields));
+                accelSensorData.x = out.accX + noise.accelStateData.x;
+                accelSensorData.y = out.accY + noise.accelStateData.y;
+                accelSensorData.z = out.accZ + noise.accelStateData.z;
+                accelSensor->setData(accelSensorData);
+            } else {
+                // Update gyroscope sensor data
+                GyroState::DataFields gyroStateData;
+                memset(&gyroStateData, 0, sizeof(GyroState::DataFields));
+                gyroStateData.x = out.rollRate + noise.gyroStateData.x;
+                gyroStateData.y = out.pitchRate + noise.gyroStateData.y;
+                gyroStateData.z = out.yawRate + noise.gyroStateData.z;
+                gyroState->setData(gyroStateData);
+
+                // Update accelerometer sensor data
+                AccelState::DataFields accelStateData;
+                memset(&accelStateData, 0, sizeof(AccelState::DataFields));
+                accelStateData.x = out.accX + noise.accelStateData.x;
+                accelStateData.y = out.accY + noise.accelStateData.y;
+                accelStateData.z = out.accZ + noise.accelStateData.z;
+                accelState->setData(accelStateData);
+            }
 
             attRawTime = attRawTime.addMSecs(settings.attRawRate);
         }

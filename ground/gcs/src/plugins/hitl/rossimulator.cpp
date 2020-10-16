@@ -143,10 +143,15 @@ void ROSSimulator::processUpdate(const QByteArray & inp)
     // Split
     QString data(inp);
     QStringList fields = data.split(",");
+
+    if (fields.length() < 18) {
+        emit processOutput("Received invalid message - too short!\n");
+        return;
+    }
     // Get rollRate (deg/s)
-    float rollRate     = fields[0].toFloat();
+    float rollRate  = fields[0].toFloat();
     // Get pitchRate (deg/s)
-    float pitchRate    = fields[1].toFloat();
+    float pitchRate = fields[1].toFloat();
     // Get yawRate (deg/s)
     float yawRate   = fields[2].toFloat();
     // Get xAccel (m/s^2)
@@ -156,13 +161,13 @@ void ROSSimulator::processUpdate(const QByteArray & inp)
     // Get xAccel (m/s^2)
     float zAccel    = fields[5].toFloat();
     // Get roll (deg)
-    float roll      = fields[6].toFloat();
+    float roll     = fields[6].toFloat();
     // Get pitch (deg)
-    float pitch     = fields[7].toFloat();
+    float pitch    = fields[7].toFloat();
     // Get yaw (deg)
-    float yaw       = fields[8].toFloat();
+    float yaw      = fields[8].toFloat();
     // Get airspeed (m/s)
-    float airspeed  = fields[9].toFloat() * KT2MPS;
+    float airspeed = fields[9].toFloat() * KT2MPS;
     // Get VelocityState Down (m/s)
     float velocityStateNorth = fields[10].toFloat();
     // Get VelocityState East (m/s)

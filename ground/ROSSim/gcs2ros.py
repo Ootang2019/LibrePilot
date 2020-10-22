@@ -2,10 +2,12 @@
 
 import rospy
 import socket
-from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Float64MultiArray,MultiArrayDimension
+
+#from geometry_msgs.msg import PoseStamped
 
 server = ("127.0.0.1",40000)
-topic = ('ROSGCS2',PoseStamped)
+topic = ('GCSACTUATORS',Float64MultiArray)
 
 rospy.init_node('GCS2ROS')
 rospy.loginfo("Startup")
@@ -17,8 +19,14 @@ rospy.loginfo("socket bound, publisher initialized")
 
 def NetworkHandler(values):
 
-    #12 actuator channels, not much we can do with that for now
-    msg=PoseStamped()
+    #12 actuator channels, send as multiarray
+
+    msg=Float64MultiArray()
+    msg.layout.dim=[MultiArrayDimension()]
+    msg.layout.dim[0].label="Channel"
+    msg.layout.dim[0].size=12
+    msg.layout.dim[0].stride=1
+    msg.data=values
     msgpublisher.publish(msg)
     rospy.loginfo("msg sent to ros")
     return

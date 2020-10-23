@@ -69,6 +69,7 @@ UAVOBJSRCFILENAMES += gpssettings
 UAVOBJSRCFILENAMES += auxpositionsensor
 UAVOBJSRCFILENAMES += vtolpathfollowersettings
 UAVOBJSRCFILENAMES += groundpathfollowersettings
+UAVOBJSRCFILENAMES += airshippathfollowersettings
 UAVOBJSRCFILENAMES += fixedwingpathfollowersettings
 UAVOBJSRCFILENAMES += fixedwingpathfollowerstatus
 UAVOBJSRCFILENAMES += homelocation

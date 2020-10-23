@@ -46,6 +46,7 @@ UAVOBJS = \
     $${UAVOBJ_XML_DIR}/actuatorcommand.xml \
     $${UAVOBJ_XML_DIR}/actuatordesired.xml \
     $${UAVOBJ_XML_DIR}/actuatorsettings.xml \
+    $${UAVOBJ_XML_DIR}/airshippathfollowersettings.xml \
     $${UAVOBJ_XML_DIR}/airspeedsensor.xml \
     $${UAVOBJ_XML_DIR}/airspeedsettings.xml \
     $${UAVOBJ_XML_DIR}/airspeedstate.xml \

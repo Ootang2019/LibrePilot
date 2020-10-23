@@ -116,7 +116,7 @@
 #define IRQSTACK_LIMIT_WARNING         150
 #define IRQSTACK_LIMIT_CRITICAL        80
 #define CPULOAD_LIMIT_WARNING          80
-#define CPULOAD_LIMIT_CRITICAL         95
+#define CPULOAD_LIMIT_CRITICAL         101
 
 // This actually needs calibrating
 #define IDLE_COUNTS_PER_SEC_AT_NO_LOAD (8379692)

@@ -231,7 +231,7 @@ uint8_t AirshipFlyController::updateFixedDesiredAttitude()
 {
     uint8_t result   = 1;
     bool cutThrust   = false;
-    bool hasAirspeed = true;
+    __attribute__((unused)) bool hasAirspeed = true;
 
     const float dT   = airshipSettings->UpdatePeriod / 1000.0f;
 
@@ -279,16 +279,17 @@ uint8_t AirshipFlyController::updateFixedDesiredAttitude()
     if (airshipSettings->UseAirspeedSensor == AIRSHIPPATHFOLLOWERSETTINGS_USEAIRSPEEDSENSOR_FALSE) {
         // fallback algo triggered voluntarily
         hasAirspeed = false;
+	indicatedAirspeedStateBias = 0;
         fixedWingPathFollowerStatus.Errors.AirspeedSensor = 1;
     } else if (PIOS_DELAY_GetuSSince(lastAirspeedUpdate) > 1000000) {
         // no airspeed update in one second, assume airspeed sensor failure
         hasAirspeed = false;
+	indicatedAirspeedStateBias = 0;
         result = 0;
         fixedWingPathFollowerStatus.Errors.AirspeedSensor = 1;
     }
 
 
-    if (hasAirspeed) {
         // missing sensors for airspeed-direction we have to assume within
         // reasonable error that measured airspeed is actually the airspeed
         // component in forward pointing direction
@@ -335,6 +336,7 @@ uint8_t AirshipFlyController::updateFixedDesiredAttitude()
         }
 
         // Airspeed error
+	//fprintf(stderr,"Desired Airspeed: %f\tActual Airspeed: %f\n",indicatedAirspeedDesired, indicatedAirspeedState);
         airspeedError = indicatedAirspeedDesired - indicatedAirspeedState;
 
         // Error condition: plane too slow or too fast
@@ -353,7 +355,6 @@ uint8_t AirshipFlyController::updateFixedDesiredAttitude()
             fixedWingPathFollowerStatus.Errors.Lowspeed = 1;
             result = 0;
         }
-    }
 
     // Vertical speed error
     descentspeedDesired = boundf(
@@ -363,15 +364,40 @@ uint8_t AirshipFlyController::updateFixedDesiredAttitude()
     descentspeedError = descentspeedDesired - velocityState.Down;
 
     /**
+     * Compute desired pitch command
+     */
+
+    // Compute the pitch command as err*Kp + errInt*Ki
+    pitchCommand = -pid_apply(&PIDalt, descentspeedError, dT);
+
+    fixedWingPathFollowerStatus.Error.Speed    = airspeedError;
+    fixedWingPathFollowerStatus.ErrorInt.Speed = PIDalt.iAccumulator;
+    fixedWingPathFollowerStatus.Command.Speed  = pitchCommand;
+
+    stabDesired.Pitch = boundf(airshipSettings->PitchLimit.Neutral + pitchCommand,
+                               airshipSettings->PitchLimit.Min,
+                               airshipSettings->PitchLimit.Max);
+
+    // Error condition: pitch way out of wack
+    if (airshipSettings->Safetymargins.Pitchcontrol > 0.5f &&
+        (attitudeState.Pitch < airshipSettings->PitchLimit.Min - airshipSettings->SafetyCutoffLimits.PitchDeg ||
+         attitudeState.Pitch > airshipSettings->PitchLimit.Max + airshipSettings->SafetyCutoffLimits.PitchDeg)) {
+        fixedWingPathFollowerStatus.Errors.Pitchcontrol = 1;
+        result = 0;
+        cutThrust = true;
+    }
+
+    /**
      * Compute desired thrust command
      */
 
     // Compute final thrust response
-    if (hasAirspeed) {
-    	powerCommand = pid_apply(&PIDpower, -airspeedError, dT);
-    } else {
-        powerCommand = 0.0f;
-    }
+    powerCommand = pid_apply(&PIDpower, airspeedError, dT);
+
+    // compute pitch to power crossfeed
+    powerCommand += boundf(airshipSettings->PitchToPowerCrossFeed.Kp * pitchCommand,
+                               airshipSettings->PitchToPowerCrossFeed.Min,
+                               airshipSettings->PitchToPowerCrossFeed.Max);
 
     // Output internal state to telemetry
     fixedWingPathFollowerStatus.Error.Power    = descentspeedError;
@@ -398,41 +424,11 @@ uint8_t AirshipFlyController::updateFixedDesiredAttitude()
     // Error condition: plane keeps climbing despite minimum thrust (opposite of above)
     fixedWingPathFollowerStatus.Errors.Highpower = 0;
 
-    /**
-     * Compute desired pitch command
-     */
-
-    // Compute the pitch command as err*Kp + errInt*Ki
-    pitchCommand = -pid_apply(&PIDalt, -descentspeedError, dT);
-
-    fixedWingPathFollowerStatus.Error.Speed    = airspeedError;
-    fixedWingPathFollowerStatus.ErrorInt.Speed = PIDalt.iAccumulator;
-    fixedWingPathFollowerStatus.Command.Speed  = pitchCommand;
-
-    stabDesired.Pitch = boundf(airshipSettings->PitchLimit.Neutral + pitchCommand,
-                               airshipSettings->PitchLimit.Min,
-                               airshipSettings->PitchLimit.Max);
-
-
-    // Error condition: pitch way out of wack
-    if (airshipSettings->Safetymargins.Pitchcontrol > 0.5f &&
-        (attitudeState.Pitch < airshipSettings->PitchLimit.Min - airshipSettings->SafetyCutoffLimits.PitchDeg ||
-         attitudeState.Pitch > airshipSettings->PitchLimit.Max + airshipSettings->SafetyCutoffLimits.PitchDeg)) {
-        fixedWingPathFollowerStatus.Errors.Pitchcontrol = 1;
-        result = 0;
-        cutThrust = true;
-    }
-
 
     /**
      * Compute desired yaw command
      */
-    if (hasAirspeed) {
-        courseError = RAD2DEG(atan2f(courseComponent[1], courseComponent[0])) - attitudeState.Yaw;
-    } else {
-        // fallback based on effective movement direction when in fallback mode, hope that airspeed > wind velocity, or we will never get home
-        courseError = RAD2DEG(atan2f(velocityDesired.East, velocityDesired.North)) - RAD2DEG(atan2f(velocityState.East, velocityState.North));
-    }
+    courseError = RAD2DEG(atan2f(courseComponent[1], courseComponent[0])) - attitudeState.Yaw;
 
     if (courseError < -180.0f) {
         courseError += 360.0f;
@@ -455,7 +451,7 @@ uint8_t AirshipFlyController::updateFixedDesiredAttitude()
     }
     previousCourseError = courseError;
 
-    courseCommand = airshipSettings->CourseP * -courseError;
+    courseCommand = airshipSettings->CourseP * courseError;
 
     fixedWingPathFollowerStatus.Error.Course    = courseError;
     fixedWingPathFollowerStatus.ErrorInt.Course = 0.0;
@@ -480,7 +476,7 @@ uint8_t AirshipFlyController::updateFixedDesiredAttitude()
     /**
      * Compute desired roll command
      */
-    stabDesired.Roll = boundf(airshipSettings->ThrustVector.Min + powerCommand * airshipSettings->ThrustVector.Kp, airshipSettings->ThrustVector.Min,airshipSettings->ThrustVector.Max);
+    stabDesired.Roll = boundf(airshipSettings->ThrustVector.Neutral + pitchCommand * airshipSettings->ThrustVector.Kp, airshipSettings->ThrustVector.Min,airshipSettings->ThrustVector.Max);
 
     // safety cutoff condition
     if (cutThrust) {

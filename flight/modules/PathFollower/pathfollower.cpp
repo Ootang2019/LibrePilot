@@ -188,6 +188,7 @@ extern "C" int32_t PathFollowerInitialize()
 
     // Create object queue
     pathFollowerCBInfo = PIOS_CALLBACKSCHEDULER_Create(&pathFollowerTask, CALLBACK_PRIORITY, CBTASK_PRIORITY, CALLBACKINFO_RUNNING_PATHFOLLOWER, STACK_SIZE_BYTES);
+    AirshipPathFollowerSettingsConnectCallback(&SettingsUpdatedCb);
     FixedWingPathFollowerSettingsConnectCallback(&SettingsUpdatedCb);
     GroundPathFollowerSettingsConnectCallback(&SettingsUpdatedCb);
     VtolPathFollowerSettingsConnectCallback(&SettingsUpdatedCb);

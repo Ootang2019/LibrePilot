@@ -64,6 +64,7 @@ extern "C" {
 #include <fixedwingpathfollowersettings.h>
 #include <fixedwingpathfollowerstatus.h>
 #include <vtolpathfollowersettings.h>
+#include <airshippathfollowersettings.h>
 #include <flightstatus.h>
 #include <flightmodesettings.h>
 #include <pathstatus.h>
@@ -98,6 +99,7 @@ extern "C" {
 #include "fixedwingautotakeoffcontroller.h"
 #include "fixedwinglandcontroller.h"
 #include "grounddrivecontroller.h"
+#include "airshipflycontroller.h"
 
 // Private constants
 
@@ -117,6 +119,7 @@ static uint32_t updatePeriod = PF_IDLE_UPDATE_RATE_MS;
 static FrameType_t frameType = FRAME_TYPE_MULTIROTOR;
 static PathStatusData pathStatus;
 static PathDesiredData pathDesired;
+static AirshipPathFollowerSettingsData airshipPathFollowerSettings;
 static FixedWingPathFollowerSettingsData fixedWingPathFollowerSettings;
 static GroundPathFollowerSettingsData groundPathFollowerSettings;
 static VtolPathFollowerSettingsData vtolPathFollowerSettings;
@@ -154,7 +157,10 @@ extern "C" int32_t PathFollowerStart()
 extern "C" int32_t PathFollowerInitialize()
 {
     // initialize objects
+    AirshipPathFollowerSettingsInitialize();
+    FixedWingPathFollowerSettingsInitialize();
     FixedWingPathFollowerStatusInitialize();
+    VtolPathFollowerSettingsInitialize();
     FlightStatusInitialize();
     PathStatusInitialize();
     PathSummaryInitialize();
@@ -200,6 +206,7 @@ void pathFollowerInitializeControllersForFrameType()
     static uint8_t multirotor_initialised = 0;
     static uint8_t fixedwing_initialised  = 0;
     static uint8_t ground_initialised     = 0;
+    static uint8_t airship_initialised  = 0;
 
     switch (frameType) {
     case FRAME_TYPE_MULTIROTOR:
@@ -220,6 +227,13 @@ void pathFollowerInitializeControllersForFrameType()
             FixedWingAutoTakeoffController::instance()->Initialize(&fixedWingPathFollowerSettings);
             FixedWingLandController::instance()->Initialize(&fixedWingPathFollowerSettings);
             fixedwing_initialised = 1;
+        }
+        break;
+
+    case FRAME_TYPE_AIRSHIP:
+        if (!airship_initialised) {
+            AirshipFlyController::instance()->Initialize(&airshipPathFollowerSettings);
+            airship_initialised = 1;
         }
         break;
 
@@ -294,6 +308,23 @@ static void pathFollowerSetActiveController(void)
                 break;
             case PATHDESIRED_MODE_AUTOTAKEOFF:
                 activeController = FixedWingAutoTakeoffController::instance();
+                activeController->Activate();
+                break;
+            default:
+                activeController = 0;
+                AlarmsSet(SYSTEMALARMS_ALARM_GUIDANCE, SYSTEMALARMS_ALARM_UNINITIALISED);
+                break;
+            }
+            break;
+
+	case FRAME_TYPE_AIRSHIP:
+
+            switch (pathDesired.Mode) {
+            case PATHDESIRED_MODE_GOTOENDPOINT:
+            case PATHDESIRED_MODE_FOLLOWVECTOR:
+            case PATHDESIRED_MODE_CIRCLERIGHT:
+            case PATHDESIRED_MODE_CIRCLELEFT:
+                activeController = AirshipFlyController::instance();
                 activeController->Activate();
                 break;
             default:
@@ -423,6 +454,9 @@ static void SettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
         case VTOLPATHFOLLOWERSETTINGS_TREATCUSTOMCRAFTAS_GROUND:
             frameType = FRAME_TYPE_GROUND;
             break;
+        case VTOLPATHFOLLOWERSETTINGS_TREATCUSTOMCRAFTAS_AIRSHIP:
+            frameType = FRAME_TYPE_AIRSHIP;
+            break;
         }
     }
 
@@ -444,6 +478,10 @@ static void SettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
         GroundPathFollowerSettingsGet(&groundPathFollowerSettings);
         updatePeriod = groundPathFollowerSettings.UpdatePeriod;
         break;
+    case FRAME_TYPE_AIRSHIP:
+        AirshipPathFollowerSettingsGet(&airshipPathFollowerSettings);
+        updatePeriod = airshipPathFollowerSettings.UpdatePeriod;
+        break;
     default:
         updatePeriod = vtolPathFollowerSettings.UpdatePeriod;
         break;
@@ -459,6 +497,7 @@ static void airspeedStateUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
 {
     FixedWingFlyController::instance()->AirspeedStateUpdatedCb(ev);
     FixedWingAutoTakeoffController::instance()->AirspeedStateUpdatedCb(ev);
+    AirshipFlyController::instance()->AirspeedStateUpdatedCb(ev);
 }
 
 

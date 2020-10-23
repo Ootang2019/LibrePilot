@@ -199,6 +199,9 @@ static void SettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
         case VTOLPATHFOLLOWERSETTINGS_TREATCUSTOMCRAFTAS_GROUND:
             frameType = FRAME_TYPE_GROUND;
             break;
+        case VTOLPATHFOLLOWERSETTINGS_TREATCUSTOMCRAFTAS_AIRSHIP:
+            frameType = FRAME_TYPE_AIRSHIP;
+            break;
         }
     }
 #endif /* ifndef PIOS_EXCLUDE_ADVANCED_FEATURES */

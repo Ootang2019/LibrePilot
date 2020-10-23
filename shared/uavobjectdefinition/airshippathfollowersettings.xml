@@ -1,6 +1,6 @@
 <xml>
-    <object name="AirShipPathFollowerSettings" singleinstance="true" settings="true" category="Control">
-        <description>Settings for the @ref AirShipPathFollowerModule</description>
+    <object name="AirshipPathFollowerSettings" singleinstance="true" settings="true" category="Control">
+        <description>Settings for the @ref AirshipPathFollowerModule</description>
 
         <!-- these coefficients control desired movement in airspace -->
         <field name="HorizontalVelMax" units="m/s" type="float" elements="1" defaultvalue="20" description="Maximum speed the autopilot will try to achieve, usually for long distances" />

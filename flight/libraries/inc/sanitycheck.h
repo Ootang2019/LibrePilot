@@ -40,6 +40,7 @@ typedef enum {
     FRAME_TYPE_HELI,
     FRAME_TYPE_FIXED_WING,
     FRAME_TYPE_GROUND,
+    FRAME_TYPE_AIRSHIP,
     FRAME_TYPE_CUSTOM,
 } FrameType_t;
 

@@ -33,6 +33,7 @@
 
 #include "rosbridge.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Float64MultiArray.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "nav_msgs/Odometry.h"
 #include "uav_msgs/uav_pose.h"
@@ -55,7 +56,7 @@ public:
     uint8_t rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t rx_length;
     rosbridge *parent;
-    ros::Publisher state_pub, state2_pub, uavpose_corrected_pub, uavpose_pub, state4_pub, imu_pub, gyro_bias_pub;
+    ros::Publisher state_pub, state2_pub, uavpose_corrected_pub, uavpose_pub, state4_pub, imu_pub, gyro_bias_pub, actuators_pub;
     uint32_t sequence;
     uint32_t imusequence;
 
@@ -161,6 +162,9 @@ public:
             case ROSBRIDGEMESSAGE_GYRO_BIAS:
                 gyro_bias_handler(message);
                 break;
+            case ROSBRIDGEMESSAGE_ACTUATORS:
+                actuators_handler(message);
+                break;
             default:
             {
                 std_msgs::String msg;
@@ -220,6 +224,21 @@ public:
         gyrobias.bias.z = data->gyro_bias[2];
         gyro_bias_pub.publish(gyrobias);
         parent->rosinfoPrint("gyrobias published");
+    }
+    
+    void actuators_handler(rosbridgemessage_t *message)
+    {
+        rosbridgemessage_actuators_t *data    = (rosbridgemessage_actuators_t *)message->data;
+
+        std_msgs::Float64MultiArray actuators;
+        actuators.layout.dim.push_back(std_msgs::MultiArrayDimension());
+        actuators.layout.dim[0].size = 12;
+        actuators.layout.dim[0].stride = 1;
+        actuators.layout.dim[0].label = "Channel";
+        for (int t=0; t<12; t++) {
+            actuators.data.push_back((double)data->pwm[t]);
+        }
+        actuators_pub.publish(actuators);
     }
 
 
@@ -361,6 +380,7 @@ public:
         state4_pub    = nodehandle->advertise<librepilot::TransmitterInfo>(parent->getNameSpace() + "/TransmitterInfo", 10);
         imu_pub       = nodehandle->advertise<sensor_msgs::Imu>(parent->getNameSpace() + "/Imu", 10);
         gyro_bias_pub = nodehandle->advertise<librepilot::gyro_bias>(parent->getNameSpace() + "/gyrobias", 10);
+        actuators_pub = nodehandle->advertise<std_msgs::Float64MultiArray>(parent->getNameSpace() + "/actuators", 10);
         while (ros::ok()) {
             boost::asio::read(*port, boost::asio::buffer(&c, 1));
             ros_receive_byte(c);

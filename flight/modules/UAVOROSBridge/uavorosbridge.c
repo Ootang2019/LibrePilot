@@ -66,6 +66,7 @@
 #include "manualcontrolcommand.h"
 #include "accessorydesired.h"
 #include "actuatordesired.h"
+#include "actuatorcommand.h"
 #include "auxpositionsensor.h"
 #include "auxvelocitysensor.h"
 #include "pathdesired.h"
@@ -129,7 +130,7 @@ static int32_t uavoROSBridgeInitialize(void);
 static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
-static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler, vel_estimate_r_handler;
+static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler, vel_estimate_r_handler, actuators_handler;
 static ROSBridgeSettingsData settings;
 void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
 void SettingsCb(__attribute__((unused)) UAVObjEvent *ev);
@@ -147,7 +148,9 @@ static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE
     fullstate_estimate_handler,
     imu_average_handler,
     gyro_bias_handler,
-    gimbal_estimate_handler
+    gimbal_estimate_handler,
+    NULL,
+    actuators_handler
 };
 
 
@@ -357,6 +360,7 @@ static int32_t uavoROSBridgeInitialize(void)
             PathDesiredInitialize();
             PoiLocationInitialize();
             ActuatorDesiredInitialize();
+            ActuatorCommandInitialize();
             FlightModeSettingsInitialize();
             ManualControlCommandInitialize();
             AccessoryDesiredInitialize();
@@ -617,6 +621,11 @@ static void gimbal_estimate_handler(__attribute__((unused)) struct ros_bridge *r
 {
     // TODO
 }
+static void actuators_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    rosbridgemessage_actuators_t *data = (rosbridgemessage_actuators_t *)&(m->data);
+    ActuatorCommandChannelGet(&(data->pwm[0]));
+}
 
 /**
  * Main task routine
@@ -724,6 +733,7 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
         ros->stateTimer = 0;
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE] = true;
+        ros->scheduled[ROSBRIDGEMESSAGE_ACTUATORS] = true;
     }
     if (++ros->biasTimer >= settings.UpdateRate.Bias && settings.UpdateRate.Bias > 0) {
         ros->biasTimer = 0;

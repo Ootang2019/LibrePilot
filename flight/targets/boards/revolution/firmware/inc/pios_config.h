@@ -165,7 +165,7 @@
 #define PIOS_INCLUDE_FRSKY_SENSORHUB
 
 /* Stabilization options */
-/* #define PIOS_QUATERNION_STABILIZATION */
+#define PIOS_QUATERNION_STABILIZATION
 
 /* Performance counters */
 #define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 8379692

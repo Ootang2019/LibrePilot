@@ -105,6 +105,7 @@ ifndef TESTAPP
     SRC += $(FLIGHT_UAVOBJ_DIR)/stabilizationsettingsbank3.c
     SRC += $(FLIGHT_UAVOBJ_DIR)/stabilizationstatus.c
     SRC += $(FLIGHT_UAVOBJ_DIR)/stabilizationbank.c
+    SRC += $(FLIGHT_UAVOBJ_DIR)/actuatoroverride.c
     SRC += $(FLIGHT_UAVOBJ_DIR)/actuatorcommand.c
     SRC += $(FLIGHT_UAVOBJ_DIR)/actuatordesired.c
     SRC += $(FLIGHT_UAVOBJ_DIR)/actuatorsettings.c

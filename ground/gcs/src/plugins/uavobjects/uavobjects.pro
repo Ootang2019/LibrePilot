@@ -43,6 +43,7 @@ UAVOBJS = \
     $${UAVOBJ_XML_DIR}/accelsensor.xml \
     $${UAVOBJ_XML_DIR}/accelstate.xml \
     $${UAVOBJ_XML_DIR}/accessorydesired.xml \
+    $${UAVOBJ_XML_DIR}/actuatoroverride.xml \
     $${UAVOBJ_XML_DIR}/actuatorcommand.xml \
     $${UAVOBJ_XML_DIR}/actuatordesired.xml \
     $${UAVOBJ_XML_DIR}/actuatorsettings.xml \

@@ -534,7 +534,7 @@ static void actuatorTask(__attribute__((unused)) void *parameters)
         }
 
         // actuator ovverrides - if applicable
-        if ((PIOS_DELAY_GetuSSince(override_age) < (actuatorSettings.AcuatorOverrideValidTime * 1000)) && (override_age != 0)) {
+        if ((PIOS_DELAY_GetuSSince(override_age) < (actuatorSettings.AcuatorOverrideValidTime * 1000)) && (override_age != 0) && armed) {
             for (int i = 0; i < ACTUATORCOMMAND_CHANNEL_NUMELEM; i++) {
                 if (actuatorSettings.AllowActuatorOverride[i] == ACTUATORSETTINGS_ALLOWACTUATOROVERRIDE_TRUE) {
                     command.Channel[i] = actuatorOverride.Channel[i]; // override the channel!

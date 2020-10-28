@@ -210,12 +210,12 @@ void GCSControlGadget::sticksChangedLocally(double leftX, double leftY, double r
 
     // if (newThrottle != oldThrottle) {
     // convert widget's throttle stick range (-1..+1) to ManualControlCommand.Throttle range (0..1)
-    //newThrottle = (newThrottle + 1.0) / 2.0;
+    // newThrottle = (newThrottle + 1.0) / 2.0;
 
     // safety value to stop the motors from spinning at 0% throttle
-    //if (newThrottle <= 0.01) {
-    //    newThrottle = -1;
-    //}
+    // if (newThrottle <= 0.01) {
+    // newThrottle = -1;
+    // }
     // }
 
 

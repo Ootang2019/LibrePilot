@@ -207,7 +207,7 @@ void pathFollowerInitializeControllersForFrameType()
     static uint8_t multirotor_initialised = 0;
     static uint8_t fixedwing_initialised  = 0;
     static uint8_t ground_initialised     = 0;
-    static uint8_t airship_initialised  = 0;
+    static uint8_t airship_initialised    = 0;
 
     switch (frameType) {
     case FRAME_TYPE_MULTIROTOR:
@@ -318,7 +318,7 @@ static void pathFollowerSetActiveController(void)
             }
             break;
 
-	case FRAME_TYPE_AIRSHIP:
+        case FRAME_TYPE_AIRSHIP:
 
             switch (pathDesired.Mode) {
             case PATHDESIRED_MODE_GOTOENDPOINT:

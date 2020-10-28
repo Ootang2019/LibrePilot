@@ -39,6 +39,7 @@
 #include "systemsettings.h"
 #include "actuatordesired.h"
 #include "actuatorcommand.h"
+#include "actuatoroverride.h"
 #include "flightstatus.h"
 #include <flightmodesettings.h>
 #include "mixersettings.h"
@@ -109,6 +110,7 @@ static float MixerCurveFullRangeAbsolute(const float input, const float *curve, 
 static int32_t set_channel(uint8_t mixer_channel, uint16_t value);
 static void actuator_update_rate_if_changed(bool force_update);
 static void MixerSettingsUpdatedCb(UAVObjEvent *ev);
+static void ActuatorOverrideUpdatedCb(UAVObjEvent *ev);
 static void ActuatorSettingsUpdatedCb(UAVObjEvent *ev);
 static void SettingsUpdatedCb(UAVObjEvent *ev);
 float ProcessMixer(const int index, const float curve1, const float curve2,
@@ -120,6 +122,10 @@ typedef struct {
     uint8_t type;
     int8_t  matrix[5];
 } __attribute__((packed)) Mixer_t;
+
+// allow overriding of actuator channels
+static ActuatorOverrideData actuatorOverride;
+static int32_t override_age = 0;
 
 /**
  * @brief Module initialization
@@ -147,6 +153,10 @@ int32_t ActuatorInitialize()
 {
     // Register for notification of changes to ActuatorSettings
     ActuatorSettingsConnectCallback(ActuatorSettingsUpdatedCb);
+
+    // register for notification of changes to ActuatorOverride
+    ActuatorOverrideInitialize();
+    ActuatorOverrideConnectCallback(ActuatorOverrideUpdatedCb);
 
     // Register for notification of changes to MixerSettings
     MixerSettingsConnectCallback(MixerSettingsUpdatedCb);
@@ -521,6 +531,17 @@ static void actuatorTask(__attribute__((unused)) void *parameters)
                                                       actuatorSettings.ChannelNeutral[i]);
                 }
             }
+        }
+
+        // actuator ovverrides - if applicable
+        if ((PIOS_DELAY_GetuSSince(override_age) < (actuatorSettings.AcuatorOverrideValidTime * 1000)) && (override_age != 0)) {
+            for (int i = 0; i < ACTUATORCOMMAND_CHANNEL_NUMELEM; i++) {
+                if (actuatorSettings.AllowActuatorOverride[i] == ACTUATORSETTINGS_ALLOWACTUATOROVERRIDE_TRUE) {
+                    command.Channel[i] = actuatorOverride.Channel[i]; // override the channel!
+                }
+            }
+        } else {
+            override_age = 0; // this makes sure an outdated override stays outdated even across clock overflows
         }
 
         // Store update time
@@ -1087,6 +1108,12 @@ static void ActuatorSettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
     actuator_update_rate_if_changed(false);
 
     update_servo_active();
+}
+
+static void ActuatorOverrideUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
+{
+    ActuatorOverrideGet(&actuatorOverride);
+    override_age = PIOS_DELAY_GetuS();
 }
 
 static void MixerSettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)

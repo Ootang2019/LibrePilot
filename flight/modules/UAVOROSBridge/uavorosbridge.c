@@ -67,6 +67,7 @@
 #include "accessorydesired.h"
 #include "actuatordesired.h"
 #include "actuatorcommand.h"
+#include "actuatoroverride.h"
 #include "auxpositionsensor.h"
 #include "auxvelocitysensor.h"
 #include "pathdesired.h"
@@ -130,13 +131,15 @@ static int32_t uavoROSBridgeInitialize(void);
 static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
-static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler, vel_estimate_r_handler, actuators_handler;
+static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler, vel_estimate_r_handler, actuators_handler, actuators_r_handler;
 static ROSBridgeSettingsData settings;
 void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
 void SettingsCb(__attribute__((unused)) UAVObjEvent *ev);
 void RateCb(__attribute__((unused)) UAVObjEvent *ev);
 void RawGyrCb(__attribute__((unused)) UAVObjEvent *ev);
 void RawAccCb(__attribute__((unused)) UAVObjEvent *ev);
+
+static bool commandOverridePermitted = false;
 
 // order here is important and must match order of rosbridgemessagetype_t
 static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
@@ -228,6 +231,9 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
             break;
         case ROSBRIDGEMESSAGE_VEL_ESTIMATE:
             vel_estimate_r_handler(m, message);
+            break;
+        case ROSBRIDGEMESSAGE_ACTUATORS:
+            actuators_r_handler(m, message);
             break;
         default:
             // do nothing at all and discard the message
@@ -361,6 +367,7 @@ static int32_t uavoROSBridgeInitialize(void)
             PoiLocationInitialize();
             ActuatorDesiredInitialize();
             ActuatorCommandInitialize();
+            ActuatorOverrideInitialize();
             FlightModeSettingsInitialize();
             ManualControlCommandInitialize();
             AccessoryDesiredInitialize();
@@ -408,6 +415,8 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
     rosbridgemessage_flightcontrol_t *data = (rosbridgemessage_flightcontrol_t *)&(m->data);
     FlightStatusFlightModeOptions mode;
 
+    commandOverridePermitted = false;
+
     FlightStatusFlightModeGet(&mode);
     if (mode != FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
         return;
@@ -415,6 +424,25 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
     PathDesiredData pathDesired;
     PathDesiredGet(&pathDesired);
     switch (data->mode) {
+    case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS:
+    {
+        // this behaves like position hold - but with command overrides - the effect is - if command overrides stop happening, we end up in position hold
+        PositionStateData curpos;
+        PositionStateGet(&curpos);
+        FlightModeSettingsPositionHoldOffsetData offset;
+        FlightModeSettingsPositionHoldOffsetGet(&offset);
+        pathDesired.End.North        = boundf(curpos.North, settings.GeoFenceBoxMin.North, settings.GeoFenceBoxMax.North);
+        pathDesired.End.East         = boundf(curpos.East, settings.GeoFenceBoxMin.East, settings.GeoFenceBoxMax.East);
+        pathDesired.End.Down         = boundf(curpos.Down, settings.GeoFenceBoxMin.Down, settings.GeoFenceBoxMax.Down);
+        pathDesired.Start.North      = pathDesired.End.North + offset.Horizontal;
+        pathDesired.Start.East       = pathDesired.End.East;
+        pathDesired.Start.Down       = pathDesired.End.Down;
+        pathDesired.StartingVelocity = 0.0f;
+        pathDesired.EndingVelocity   = 0.0f;
+        pathDesired.Mode = PATHDESIRED_MODE_GOTOENDPOINT;
+        commandOverridePermitted     = true;
+    }
+    break;
     case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT:
     {
         FlightModeSettingsPositionHoldOffsetData offset;
@@ -480,6 +508,31 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
     poiLocation.Down  = data->poi[2];
     PoiLocationSet(&poiLocation);
 }
+
+static void actuators_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    // only allow override of actuators if the apropriate flight mode command has been sent
+    if (commandOverridePermitted != true) {
+        return;
+    }
+    // only allow override of actutors if the craft is in ROS controlled mode
+    FlightStatusFlightModeOptions mode;
+    FlightStatusFlightModeGet(&mode);
+    if (mode != FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
+        return;
+    }
+    rosbridgemessage_actuators_t *data = (rosbridgemessage_actuators_t *)&(m->data);
+    ActuatorOverrideChannelSet(&(data->pwm[0]));
+    ActuatorDesiredUpdated(); // manually trigger faux update on actuatordesired - this will trigger Actuator module to process early and drive the outputs ASAP
+
+    // WARNING, possible race condition. Actuators module currently has higher priority (device driver - IDLE+4) than the event dispatcher (flight control , IDLE+3)
+    // which would trigger processing of the updated override object
+    // however ROSBridge is running with an even lower task priority (AUXILLIARY, IDLE+1), which means the call to ActuatorOverrideChannelSet() should
+    // preempt the code flow here and allow the UpdatedCb() on ActuatorOverride to finish executing before execution returns to this callback
+    // to trigger the ActuatorDesired updated call
+    // if this gets messed up, worst case, the update will be one cycle delayed, which shouldn't matter for anything but the most agile crafts
+}
+
 static void pos_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
 {
     rosbridgemessage_pos_estimate_t *data = (rosbridgemessage_pos_estimate_t *)&(m->data);
@@ -490,6 +543,7 @@ static void pos_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb
     pos.Down  = data->position[2];
     AUXPositionSensorSet(&pos);
 }
+
 static void vel_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
 {
     rosbridgemessage_vel_estimate_t *data = (rosbridgemessage_vel_estimate_t *)&(m->data);
@@ -624,6 +678,7 @@ static void gimbal_estimate_handler(__attribute__((unused)) struct ros_bridge *r
 static void actuators_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
 {
     rosbridgemessage_actuators_t *data = (rosbridgemessage_actuators_t *)&(m->data);
+
     ActuatorCommandChannelGet(&(data->pwm[0]));
 }
 

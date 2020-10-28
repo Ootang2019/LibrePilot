@@ -225,17 +225,18 @@ public:
         gyro_bias_pub.publish(gyrobias);
         parent->rosinfoPrint("gyrobias published");
     }
-    
+
     void actuators_handler(rosbridgemessage_t *message)
     {
-        rosbridgemessage_actuators_t *data    = (rosbridgemessage_actuators_t *)message->data;
+        rosbridgemessage_actuators_t *data = (rosbridgemessage_actuators_t *)message->data;
 
         std_msgs::Float64MultiArray actuators;
+
         actuators.layout.dim.push_back(std_msgs::MultiArrayDimension());
-        actuators.layout.dim[0].size = 12;
+        actuators.layout.dim[0].size   = 12;
         actuators.layout.dim[0].stride = 1;
-        actuators.layout.dim[0].label = "Channel";
-        for (int t=0; t<12; t++) {
+        actuators.layout.dim[0].label  = "Channel";
+        for (int t = 0; t < 12; t++) {
             actuators.data.push_back((double)data->pwm[t]);
         }
         actuators_pub.publish(actuators);

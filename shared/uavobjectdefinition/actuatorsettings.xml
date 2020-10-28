@@ -12,7 +12,7 @@
         <field name="MotorsSpinWhileArmed" units="" type="enum" elements="1" options="False,True" defaultvalue="False"/>
         <field name="LowThrottleZeroAxis" units="" type="enum" elementnames="Roll,Pitch,Yaw" options="False,True" defaultvalue="False,False,False"/>
         <field name="AllowActuatorOverride" units="bool" type="enum" elements="12" options="False,True" defaultvalue="False" />
-        <field name="AcuatorOverrideValidTime" units="ms" type="int16" elements="1" defaultvalue="200" />
+        <field name="AcuatorOverrideValidTime" units="ms" type="uint16" elements="1" defaultvalue="200" />
         <access gcs="readwrite" flight="readwrite"/>
         <telemetrygcs acked="true" updatemode="onchange" period="0"/>
         <telemetryflight acked="true" updatemode="onchange" period="0"/>

@@ -105,7 +105,7 @@ public:
         rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
         rosbridgemessage_actuators_t *payload = (rosbridgemessage_actuators_t *)message->data;
 
-        for (int t=0;t<msg->data.size() and t<12;t++) {
+        for (int t = 0; t < msg->data.size() and t < 12; t++) {
             payload->pwm[t] = (uint16_t)(msg->data[t]);
         }
         message->magic     = ROSBRIDGEMAGIC;
@@ -126,7 +126,7 @@ public:
 
         offset3d offset = parent->getOffset();
 
-        if (msg->flightmode!=ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS) {
+        if (msg->flightmode != ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS) {
             payload->control[0] = msg->position.x - offset.x;
             payload->control[1] = msg->position.y - offset.y;
             payload->control[2] = msg->position.z - offset.z;
@@ -137,7 +137,7 @@ public:
             payload->poi[0]     = msg->POI.x - offset.x;
             payload->poi[1]     = msg->POI.y - offset.y;
             payload->poi[2]     = msg->POI.z - offset.z;
-            payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
+            payload->mode = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
         } else {
             payload->control[0] = 0;
             payload->control[1] = 0;
@@ -149,7 +149,7 @@ public:
             payload->poi[0]     = msg->POI.x - offset.x;
             payload->poi[1]     = msg->POI.y - offset.y;
             payload->poi[2]     = msg->POI.z - offset.z;
-            payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS;
+            payload->mode = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS;
         }
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_FLIGHTCONTROL;

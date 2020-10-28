@@ -35,6 +35,7 @@
 #include "std_msgs/String.h"
 #include "geometry_msgs/Vector3Stamped.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
+#include "std_msgs/Float64MultiArray.h"
 #include "uav_msgs/uav_pose.h"
 #include <sstream>
 #include "boost/thread.hpp"
@@ -98,6 +99,25 @@ public:
         parent->rosinfoPrint("received velocity, sending");
     }
 
+    void actuatorCallback(const std_msgs::Float64MultiArray::ConstPtr & msg)
+    {
+        uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
+        rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
+        rosbridgemessage_actuators_t *payload = (rosbridgemessage_actuators_t *)message->data;
+
+        for (int t=0;t<msg->data.size() and t<12;t++) {
+            payload->pwm[t] = (uint16_t)(msg->data[t]);
+        }
+        message->magic     = ROSBRIDGEMAGIC;
+        message->type      = ROSBRIDGEMESSAGE_ACTUATORS;
+        message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - *parent->getStart();
+        message->timestamp = diff.total_microseconds();
+        message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
+        parent->serialWrite(tx_buffer, message->length + offsetof(rosbridgemessage_t, data));
+        parent->rosinfoPrint("received actuators, sending");
+    }
+
     void commandCallback(const uav_msgs::uav_pose::ConstPtr & msg)
     {
         uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
@@ -106,17 +126,31 @@ public:
 
         offset3d offset = parent->getOffset();
 
-        payload->control[0] = msg->position.x - offset.x;
-        payload->control[1] = msg->position.y - offset.y;
-        payload->control[2] = msg->position.z - offset.z;
-        payload->control[3] = 0;
-        payload->vel[0]     = msg->velocity.x;
-        payload->vel[1]     = msg->velocity.y;
-        payload->vel[2]     = msg->velocity.z;
-        payload->poi[0]     = msg->POI.x - offset.x;
-        payload->poi[1]     = msg->POI.y - offset.y;
-        payload->poi[2]     = msg->POI.z - offset.z;
-        payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
+        if (msg->flightmode!=ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS) {
+            payload->control[0] = msg->position.x - offset.x;
+            payload->control[1] = msg->position.y - offset.y;
+            payload->control[2] = msg->position.z - offset.z;
+            payload->control[3] = 0;
+            payload->vel[0]     = msg->velocity.x;
+            payload->vel[1]     = msg->velocity.y;
+            payload->vel[2]     = msg->velocity.z;
+            payload->poi[0]     = msg->POI.x - offset.x;
+            payload->poi[1]     = msg->POI.y - offset.y;
+            payload->poi[2]     = msg->POI.z - offset.z;
+            payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
+        } else {
+            payload->control[0] = 0;
+            payload->control[1] = 0;
+            payload->control[2] = 0;
+            payload->control[3] = 0;
+            payload->vel[0]     = 0;
+            payload->vel[1]     = 0;
+            payload->vel[2]     = 0;
+            payload->poi[0]     = msg->POI.x - offset.x;
+            payload->poi[1]     = msg->POI.y - offset.y;
+            payload->poi[2]     = msg->POI.z - offset.z;
+            payload->mode      = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS;
+        }
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_FLIGHTCONTROL;
         message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
@@ -135,6 +169,7 @@ public:
         ros::Subscriber subscriber1 = nodehandle->subscribe(parent->getNameSpace() + "/auxvelocity", 10, &writethread_priv::velocityCallback, this);
         ros::Subscriber subscriber2 = nodehandle->subscribe(parent->getNameSpace() + "/command", 10, &writethread_priv::commandCallback, this);
         ros::Subscriber subscriber3 = nodehandle->subscribe(parent->getNameSpace() + "/offset", 10, &writethread_priv::offsetCallback, this);
+        ros::Subscriber subscriber4 = nodehandle->subscribe(parent->getNameSpace() + "/actuatorcommand", 10, &writethread_priv::actuatorCallback, this);
 
         offset3d offset;
 

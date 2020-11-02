@@ -207,7 +207,7 @@ void ROSSimulator::processUpdate(const QByteArray & inp)
     out.groundspeed  = sqrt(velocityStateNorth * velocityStateNorth + velocityStateEast * velocityStateEast);
 
     out.calibratedAirspeed = airspeed;
-    out.trueAirspeed = cas2tas(out.calibratedAirspeed, -NED[2], getAirParameters(), 9.805f);
+    out.trueAirspeed = airspeed * (1.0 + (0.02 * out.agl / 304.8));
 
 
     // Update BaroSensor object

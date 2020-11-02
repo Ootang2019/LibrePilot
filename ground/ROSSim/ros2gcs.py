@@ -4,12 +4,14 @@ import rospy
 import socket
 from geometry_msgs.msg import PointStamped,TwistStamped
 from sensor_msgs.msg import Imu
+from std_msgs.msg import Float32
 from tf.transformations import euler_from_quaternion
 
 server = ("127.0.0.1",40001)
 imutopic = ('GCSIMU',Imu)
 postopic = ('GCSPOS',PointStamped)
 veltopic = ('GCSVEL',TwistStamped)
+airspeedtopic = ('GCSAIRSPEED',Float32)
 
 UDPSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
@@ -91,11 +93,17 @@ def PosMessageSubscriber(msg):
     currentstate.position[1]=-msg.point.y
     currentstate.position[2]=-msg.point.z
 
+def AirspeedMessageSubscriber(msg):
+    currentstate.airspeed=msg.data
+    if (currentstate.airspeed<0):
+        currentstate.airspeed=0.0; #no negative airspeeds allowed
+
 rospy.init_node('ROS2GCS')
 rospy.loginfo("Startup")
 imusubscriber = rospy.Subscriber(imutopic[0],imutopic[1],ImuMessageSubscriber)
 velsubscriber = rospy.Subscriber(veltopic[0],veltopic[1],VelMessageSubscriber)
 possubscriber = rospy.Subscriber(postopic[0],postopic[1],PosMessageSubscriber)
+airspeedsubscriber = rospy.Subscriber(airspeedtopic[0],airspeedtopic[1],AirspeedMessageSubscriber)
 rospy.loginfo("Subscriber started")
 
 rospy.spin()

@@ -48,7 +48,6 @@
    #include "manualcontrolsettings.h"
    #include "oplinkstatus.h"
    #include "accessorydesired.h"
-   #include "airspeedstate.h"
    #include "actuatorsettings.h"
    #include "systemstats.h"
    #include "systemalarms.h"
@@ -63,6 +62,8 @@
    #include "magstate.h"
  */
 
+#include "revosettings.h"
+#include "airspeedstate.h"
 #include "manualcontrolcommand.h"
 #include "accessorydesired.h"
 #include "actuatordesired.h"
@@ -79,6 +80,7 @@
 #include "attitudestate.h"
 #include "gyrostate.h"
 #include "gyrosensor.h"
+#include "accelstate.h"
 #include "accelsensor.h"
 #include "rosbridgesettings.h"
 #include "rosbridgestatus.h"
@@ -131,7 +133,7 @@ static int32_t uavoROSBridgeInitialize(void);
 static void uavoROSBridgeRxTask(void *parameters);
 static void uavoROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
-static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler, vel_estimate_r_handler, actuators_handler, actuators_r_handler;
+static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler, vel_estimate_r_handler, actuators_handler, actuators_r_handler, fullstate_estimate_r_handler;
 static ROSBridgeSettingsData settings;
 void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
 void SettingsCb(__attribute__((unused)) UAVObjEvent *ev);
@@ -234,6 +236,9 @@ static void ros_receive_byte(struct ros_bridge *m, uint8_t b)
             break;
         case ROSBRIDGEMESSAGE_ACTUATORS:
             actuators_r_handler(m, message);
+            break;
+        case ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE:
+            fullstate_estimate_r_handler(m, message);
             break;
         default:
             // do nothing at all and discard the message
@@ -341,6 +346,7 @@ static int32_t uavoROSBridgeInitialize(void)
 
             ros->com = PIOS_COM_ROS;
 
+            RevoSettingsInitialize();
             ROSBridgeSettingsInitialize();
             ROSBridgeSettingsConnectCallback(&SettingsCb);
             SettingsCb(NULL);
@@ -352,6 +358,7 @@ static int32_t uavoROSBridgeInitialize(void)
 
             PIOS_COM_ChangeBaud(PIOS_COM_ROS, hwsettings_rosspeed_enum_to_baud(rosSpeed));
             callbackHandle = PIOS_CALLBACKSCHEDULER_Create(&uavoROSBridgeTxTask, CALLBACK_PRIORITY, CBTASK_PRIORITY, CALLBACKINFO_RUNNING_UAVOROSBRIDGE, STACK_SIZE_BYTES);
+            AirspeedStateInitialize();
             VelocityStateInitialize();
             PositionStateInitialize();
             AttitudeStateInitialize();
@@ -360,6 +367,7 @@ static int32_t uavoROSBridgeInitialize(void)
             GyroStateConnectCallback(&RateCb);
             GyroSensorInitialize();
             GyroSensorConnectCallback(&RawGyrCb);
+            AccelStateInitialize();
             AccelSensorInitialize();
             AccelSensorConnectCallback(&RawAccCb);
             FlightStatusInitialize();
@@ -531,6 +539,92 @@ static void actuators_r_handler(__attribute__((unused)) struct ros_bridge *rb, r
     // preempt the code flow here and allow the UpdatedCb() on ActuatorOverride to finish executing before execution returns to this callback
     // to trigger the ActuatorDesired updated call
     // if this gets messed up, worst case, the update will be one cycle delayed, which shouldn't matter for anything but the most agile crafts
+}
+
+static void fullstate_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    // only allow override of actutors if the craft is in ROS controlled mode
+    FlightStatusFlightModeOptions mode;
+
+    FlightStatusFlightModeGet(&mode);
+    if (mode != FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
+        return;
+    }
+    // only allow override if no other sensor fusion is taking place
+    RevoSettingsFusionAlgorithmOptions fusion;
+    RevoSettingsFusionAlgorithmGet(&fusion);
+    if (fusion != REVOSETTINGS_FUSIONALGORITHM_NONE) {
+        return;
+    }
+
+    rosbridgemessage_fullstate_estimate_t *data = (rosbridgemessage_fullstate_estimate_t *)&(m->data);
+
+    // attitude
+    {
+        AttitudeStateData s;
+        AttitudeStateGet(&s);
+        s.q1     = data->quaternion[0];
+        s.q2     = data->quaternion[1];
+        s.q3     = data->quaternion[2];
+        s.q4     = data->quaternion[3];
+        Quaternion2RPY(&s.q1, &s.Roll);
+        s.NavYaw = s.Yaw;
+        AttitudeStateSet(&s);
+    }
+
+    // gyroscopes
+    {
+        GyroStateData s;
+        GyroStateGet(&s);
+        s.x = data->rotation[0];
+        s.y = data->rotation[1];
+        s.z = data->rotation[2];
+        GyroStateSet(&s);
+    }
+
+    // accelerometers
+    {
+        AccelStateData s;
+        AccelStateGet(&s);
+        s.x = data->accessory[0];
+        s.y = data->accessory[1];
+        s.z = data->accessory[2];
+        AccelStateSet(&s);
+    }
+
+    float altitude;
+
+    // position
+    {
+        PositionStateData s;
+        PositionStateGet(&s);
+        s.North  = data->position[0];
+        s.East   = data->position[1];
+        s.Down   = data->position[2];
+        altitude = -s.Down;
+        PositionStateSet(&s);
+    }
+
+    // airspeed
+    {
+        AirspeedStateData s;
+        AirspeedStateGet(&s);
+        s.CalibratedAirspeed = data->accessory[3];
+    #define IAS2TAS(alt) (1.0f + (0.02f * (alt) / 304.8f))
+        s.TrueAirspeed = s.CalibratedAirspeed * IAS2TAS(altitude);
+        AirspeedStateSet(&s);
+    }
+
+    // velocity
+    {
+        VelocityStateData s;
+        VelocityStateGet(&s);
+        s.North  = data->position[0];
+        s.East   = data->position[1];
+        s.Down   = data->position[2];
+        altitude = -s.Down;
+        VelocityStateSet(&s);
+    }
 }
 
 static void pos_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)

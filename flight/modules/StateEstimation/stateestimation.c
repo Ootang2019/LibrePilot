@@ -457,7 +457,7 @@ static void StateEstimationCb(void)
     // check if a new filter chain should be initialized
     if (fusionAlgorithm != revoSettings.FusionAlgorithm) {
         if (fsarmed == FLIGHTSTATUS_ARMED_DISARMED || fusionAlgorithm == FILTER_INIT_FORCE) {
-            const filterPipeline *newFilterChain;
+            const filterPipeline *newFilterChain = NULL;
             switch ((RevoSettingsFusionAlgorithmOptions)revoSettings.FusionAlgorithm) {
             case REVOSETTINGS_FUSIONALGORITHM_ACRONOSENSORS:
                 newFilterChain = acroQueue;
@@ -490,7 +490,7 @@ static void StateEstimationCb(void)
             case REVOSETTINGS_FUSIONALGORITHM_TESTINGINSINDOORCF:
                 newFilterChain = ekf13iNavCFAttQueue;
                 break;
-            default:
+            case REVOSETTINGS_FUSIONALGORITHM_NONE:
                 newFilterChain = NULL;
             }
             // initialize filters in chain
@@ -562,6 +562,12 @@ static void StateEstimationCb(void)
         gyroDelta[1] = states.gyro[1] - gyroRaw[1];
         gyroDelta[2] = states.gyro[2] - gyroRaw[2];
     }
+
+    // do not update any UAVOBJECTS if filter is NONE:
+    if (fusionAlgorithm == REVOSETTINGS_FUSIONALGORITHM_NONE) {
+        states.updated = 0;
+    }
+
     EXPORT_STATE_TO_UAVOBJECT_IF_UPDATED_3_DIMENSIONS(AccelState, accel, x, y, z);
     if (IS_SET(states.updated, SENSORUPDATES_mag)) {
         MagStateData s;
@@ -693,7 +699,9 @@ static void sensorUpdatedCb(UAVObjEvent *ev)
         t.y = s.y + gyroDelta[1];
         t.z = s.z + gyroDelta[2];
         t.SensorReadTimestamp = s.SensorReadTimestamp;
-        GyroStateSet(&t);
+        if (fusionAlgorithm != REVOSETTINGS_FUSIONALGORITHM_NONE) {
+            GyroStateSet(&t);
+        }
     }
 
     if (ev->obj == AccelSensorHandle()) {

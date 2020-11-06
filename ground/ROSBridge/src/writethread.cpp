@@ -118,6 +118,40 @@ public:
         parent->rosinfoPrint("received actuators, sending");
     }
 
+    void fullstateCallback(const uav_msgs::uav_pose::ConstPtr & msg)
+    {
+        uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
+        rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
+        rosbridgemessage_fullstate_estimate_t *payload = (rosbridgemessage_fullstate_estimate_t *)message->data;
+
+        payload->position[0]   = msg->position.x;
+        payload->position[1]   = msg->position.y;
+        payload->position[2]   = msg->position.z;
+        payload->velocity[0]   = msg->velocity.x;
+        payload->velocity[1]   = msg->velocity.y;
+        payload->velocity[2]   = msg->velocity.z;
+        payload->rotation[0]   = msg->angVelocity.x;
+        payload->rotation[1]   = msg->angVelocity.y;
+        payload->rotation[2]   = msg->angVelocity.z;
+        payload->quaternion[0] = msg->orientation.w;
+        payload->quaternion[1] = msg->orientation.x;
+        payload->quaternion[2] = msg->orientation.y;
+        payload->quaternion[3] = msg->orientation.z;
+        payload->accessory[0]  = msg->POI.z; // used for acceleration
+        payload->accessory[1]  = msg->POI.y;
+        payload->accessory[2]  = msg->POI.z;
+        payload->accessory[3]  = msg->thrust; // used for airspeed
+
+        message->magic     = ROSBRIDGEMAGIC;
+        message->type      = ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE;
+        message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];
+        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - *parent->getStart();
+        message->timestamp = diff.total_microseconds();
+        message->crc32     = PIOS_CRC32_updateCRC(0xffffffff, message->data, message->length);
+        parent->serialWrite(tx_buffer, message->length + offsetof(rosbridgemessage_t, data));
+        parent->rosinfoPrint("hitl state, sending");
+    }
+
     void commandCallback(const uav_msgs::uav_pose::ConstPtr & msg)
     {
         uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
@@ -170,6 +204,7 @@ public:
         ros::Subscriber subscriber2 = nodehandle->subscribe(parent->getNameSpace() + "/command", 10, &writethread_priv::commandCallback, this);
         ros::Subscriber subscriber3 = nodehandle->subscribe(parent->getNameSpace() + "/offset", 10, &writethread_priv::offsetCallback, this);
         ros::Subscriber subscriber4 = nodehandle->subscribe(parent->getNameSpace() + "/actuatorcommand", 10, &writethread_priv::actuatorCallback, this);
+        ros::Subscriber subscriber5 = nodehandle->subscribe(parent->getNameSpace() + "/fakehitlstate", 10, &writethread_priv::fullstateCallback, this);
 
         offset3d offset;
 

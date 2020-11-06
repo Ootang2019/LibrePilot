@@ -181,14 +181,16 @@ public:
 
     void imu_average_handler(rosbridgemessage_t *message)
     {
-        rosbridgemessage_imu_average_t *data  = (rosbridgemessage_imu_average_t *)message->data;
+        rosbridgemessage_imu_average_t *data = (rosbridgemessage_imu_average_t *)message->data;
         sensor_msgs::Imu imu;
-        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
 
-        imu.header.seq = sequence++;
-        imu.header.stamp.sec  = diff.total_seconds();
-        imu.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
-        imu.header.frame_id   = "world";
+        // boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
+
+        imu.header.seq      = sequence++;
+        // imu.header.stamp.sec  = diff.total_seconds();
+        // imu.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
+        imu.header.stamp    = ros::Time::now();
+        imu.header.frame_id = "world";
         if (data->gyrsamples != 1 || data->accsamples != 1) {
             parent->rosinfoPrint("imu message wrong sample count");
         }
@@ -211,14 +213,16 @@ public:
 
     void gyro_bias_handler(rosbridgemessage_t *message)
     {
-        rosbridgemessage_gyro_bias_t *data    = (rosbridgemessage_gyro_bias_t *)message->data;
+        rosbridgemessage_gyro_bias_t *data = (rosbridgemessage_gyro_bias_t *)message->data;
         librepilot::gyro_bias gyrobias;
-        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
 
-        gyrobias.header.seq = sequence++;
-        gyrobias.header.stamp.sec  = diff.total_seconds();
-        gyrobias.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
-        gyrobias.header.frame_id   = "world";
+        // boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
+
+        gyrobias.header.seq      = sequence++;
+        // gyrobias.header.stamp.sec  = diff.total_seconds();
+        // gyrobias.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
+        gyrobias.header.stamp    = ros::Time::now();
+        gyrobias.header.frame_id = "world";
         gyrobias.bias.x = data->gyro_bias[0];
         gyrobias.bias.y = data->gyro_bias[1];
         gyrobias.bias.z = data->gyro_bias[2];
@@ -251,7 +255,8 @@ public:
         uav_msgs::uav_pose uavpose;
         librepilot::TransmitterInfo transmitter;
 
-        boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
+        odometry.header.stamp = ros::Time::now();
+        // boost::posix_time::time_duration diff = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
 
         // ATTENTION:  LibrePilot - like most outdoor platforms uses North-East-Down coordinate frame for all data
         // in body frame
@@ -323,11 +328,9 @@ public:
                 }
             }
         }
-        odometry.header.seq = sequence++;
-        odometry.header.stamp.sec  = diff.total_seconds();
-        odometry.header.stamp.nsec = 1000 * (diff.total_microseconds() % 1000000);
-        odometry.header.frame_id   = "world";
-        odometry.child_frame_id    = "copter";
+        odometry.header.seq      = sequence++;
+        odometry.header.frame_id = "world";
+        odometry.child_frame_id  = "copter";
         pose.header        = odometry.header;
         uavpose.header     = odometry.header;
         transmitter.header = odometry.header;

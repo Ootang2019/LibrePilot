@@ -68,7 +68,7 @@ static bool forcedDisArm(void);
  * @input: ManualControlCommand, AccessoryDesired
  * @output: FlightStatus.Arming
  */
-void armHandler(bool newinit, FrameType_t frameType)
+void armHandler(bool newinit, __attribute__((unused)) FrameType_t frameType)
 {
     static ArmState_t armState;
 
@@ -86,14 +86,9 @@ void armHandler(bool newinit, FrameType_t frameType)
     ManualControlCommandGet(&cmd);
     AccessoryDesiredData acc;
 
-    bool lowThrottle = cmd.Throttle < 0;
+    bool lowThrottle = cmd.Throttle < settings.ArmingThrottleSafeZone.Max && cmd.Throttle>settings.ArmingThrottleSafeZone.Min;
 
-    if (frameType == FRAME_TYPE_GROUND) {
-        // Deadbanding applied in receiver.c typically at 2% but we don't assume its enabled.
-        lowThrottle = fabsf(cmd.Throttle) < GROUND_LOW_THROTTLE;
-    }
-
-    bool armSwitch = false;
+    bool armSwitch   = false;
 
     switch (settings.Arming) {
     case FLIGHTMODESETTINGS_ARMING_ACCESSORY0:

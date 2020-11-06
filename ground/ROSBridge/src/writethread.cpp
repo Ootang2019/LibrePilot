@@ -137,7 +137,7 @@ public:
         payload->quaternion[1] = msg->orientation.x;
         payload->quaternion[2] = msg->orientation.y;
         payload->quaternion[3] = msg->orientation.z;
-        payload->accessory[0]  = msg->POI.z; // used for acceleration
+        payload->accessory[0]  = msg->POI.x; // used for acceleration
         payload->accessory[1]  = msg->POI.y;
         payload->accessory[2]  = msg->POI.z;
         payload->accessory[3]  = msg->thrust; // used for airspeed

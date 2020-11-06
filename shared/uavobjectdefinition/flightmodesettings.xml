@@ -86,6 +86,7 @@
 
         <field name="ArmedTimeout" units="ms" type="uint16" elements="1" defaultvalue="30000"/>
         <field name="ArmingSequenceTime" units="ms" type="uint16" elements="1" defaultvalue="1000"/>
+        <field name="ArmingThrottleSafeZone" units="%" type="float" elements="2" elementnames="Min,Max" defaultvalue="-2,0"/>
         <field name="DisarmingSequenceTime" units="ms" type="uint16" elements="1" defaultvalue="1000"/>
 	<field name="DisableSanityChecks" units="" type="enum" elements="1" options="False,True" defaultvalue="False"/>
         <field name="ReturnToBaseAltitudeOffset" units="m" type="float" elements="1" defaultvalue="10"/>

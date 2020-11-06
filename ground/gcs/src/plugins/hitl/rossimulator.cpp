@@ -167,7 +167,7 @@ void ROSSimulator::processUpdate(const QByteArray & inp)
     // Get yaw (deg)
     float yaw      = fields[8].toFloat();
     // Get airspeed (m/s)
-    float airspeed = fields[9].toFloat() * KT2MPS;
+    float airspeed = fields[9].toFloat();
     // Get VelocityState Down (m/s)
     float velocityStateNorth = fields[10].toFloat();
     // Get VelocityState East (m/s)

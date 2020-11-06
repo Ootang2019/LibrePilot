@@ -619,9 +619,9 @@ static void fullstate_estimate_r_handler(__attribute__((unused)) struct ros_brid
     {
         VelocityStateData s;
         VelocityStateGet(&s);
-        s.North  = data->position[0];
-        s.East   = data->position[1];
-        s.Down   = data->position[2];
+        s.North  = data->velocity[0];
+        s.East   = data->velocity[1];
+        s.Down   = data->velocity[2];
         altitude = -s.Down;
         VelocityStateSet(&s);
     }

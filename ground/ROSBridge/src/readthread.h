@@ -38,7 +38,7 @@ class readthread_priv;
 
 class readthread {
 public:
-    readthread(ros::NodeHandle *nodehandle, boost::asio::serial_port *port, rosbridge *parent);
+    readthread(ros::NodeHandle *nodehandle, boost::shared_ptr<anonymoussocket> port, rosbridge *parent);
     ~readthread();
 
 private:

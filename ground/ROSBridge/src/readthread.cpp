@@ -42,6 +42,7 @@
 #include "librepilot/gyro_bias.h"
 #include <sstream>
 #include "boost/thread.hpp"
+#include "anonymoussocket.h"
 #include "readthread.h"
 #include "uavorosbridgemessage_priv.h"
 #include "pios.h"
@@ -50,7 +51,7 @@
 namespace librepilot {
 class readthread_priv {
 public:
-    boost::asio::serial_port *port;
+    boost::shared_ptr<anonymoussocket> port;
     boost::thread *thread;
     ros::NodeHandle *nodehandle;
     uint8_t rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
@@ -386,7 +387,7 @@ public:
         gyro_bias_pub = nodehandle->advertise<librepilot::gyro_bias>(parent->getNameSpace() + "/gyrobias", 10);
         actuators_pub = nodehandle->advertise<std_msgs::Float64MultiArray>(parent->getNameSpace() + "/actuators", 10);
         while (ros::ok()) {
-            boost::asio::read(*port, boost::asio::buffer(&c, 1));
+            port->read(&c, 1);
             ros_receive_byte(c);
 /*
             std_msgs::String msg;
@@ -400,7 +401,7 @@ public:
     }
 };
 
-readthread::readthread(ros::NodeHandle *nodehandle, boost::asio::serial_port *port, rosbridge *parent)
+readthread::readthread(ros::NodeHandle *nodehandle, boost::shared_ptr<anonymoussocket> port, rosbridge *parent)
 {
     instance = new readthread_priv();
     instance->parent      = parent;

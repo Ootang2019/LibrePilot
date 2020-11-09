@@ -36,6 +36,7 @@
 #include "boost/asio.hpp"
 #include <boost/lexical_cast.hpp>
 #include "boost/thread.hpp"
+#include "anonymoussocket.h"
 #include "readthread.h"
 #include "writethread.h"
 #include <string>
@@ -57,7 +58,7 @@ public:
     char * *argv;
     ros::NodeHandle *nodehandle = NULL;
     uint8_t mySequenceNumber;
-    boost::asio::serial_port *revolution;
+    anonymoussocket socket;
     boost::asio::io_service io_service;
     boost::posix_time::ptime start;
     boost::mutex serial_Mutex;
@@ -108,18 +109,21 @@ int rosbridge::run(void)
 
     if (instance->argc < 4) {
         printf("Usage: %s <namespace> <serial_port> <baudrate>\n", instance->argv[0]);
+        printf("or\n");
+        printf("Usage: %s <namespace> UDP <server> <port>\n", instance->argv[0]);
         return -1;
     }
 
     instance->nameSpace = std::string(instance->argv[1]);
 
-    // open tty device
-    boost::asio::serial_port revolution(instance->io_service);
-    instance->revolution = &revolution;
-    revolution.open(instance->argv[2]);
-    revolution.set_option(boost::asio::serial_port_base::baud_rate(boost::lexical_cast<int>(instance->argv[3])));
+    if (std::string(instance->argv[2]) == std::string("UDP")) {
+        instance->socket.open_udp(std::string(instance->argv[3]), std::string(instance->argv[4]));
+    } else {
+        // open tty device
+        instance->socket.open_serial(std::string(instance->argv[2]), std::string(instance->argv[3]));
+    }
 
-    readthread reader(instance->nodehandle, &revolution, this);
+    readthread reader(instance->nodehandle, boost::shared_ptr<anonymoussocket>(&instance->socket), this);
     writethread writer(instance->nodehandle, this);
     ros::AsyncSpinner spinner(4);
     spinner.start();
@@ -146,7 +150,7 @@ uint8_t rosbridge::getMySequenceNumber(void)
 int rosbridge::serialWrite(uint8_t *buffer, size_t length)
 {
     instance->serial_Mutex.lock();
-    int res = boost::asio::write(*instance->revolution, boost::asio::buffer(buffer, length));
+    int res = instance->socket.write(buffer, length);
     instance->serial_Mutex.unlock();
     instance->canary = 1;
 

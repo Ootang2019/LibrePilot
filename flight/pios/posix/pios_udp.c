@@ -38,7 +38,8 @@
 /* We need a list of UDP devices */
 
 #define PIOS_UDP_MAX_DEV 256
-static int8_t pios_udp_num_devices = 0;
+volatile uint16_t pios_udp_port_offset = 0;
+static int8_t pios_udp_num_devices     = 0;
 
 static pios_udp_dev pios_udp_devices[PIOS_UDP_MAX_DEV];
 
@@ -133,7 +134,7 @@ int32_t PIOS_UDP_Init(uint32_t *udp_id, const struct pios_udp_cfg *cfg)
     memset(&udp_dev->client, 0, sizeof(udp_dev->client));
     udp_dev->server.sin_family = AF_INET;
     udp_dev->server.sin_addr.s_addr = inet_addr(udp_dev->cfg->ip);
-    udp_dev->server.sin_port   = htons(udp_dev->cfg->port);
+    udp_dev->server.sin_port   = htons(udp_dev->cfg->port + pios_udp_port_offset);
     int res = bind(udp_dev->socket, (struct sockaddr *)&udp_dev->server, sizeof(udp_dev->server));
 
     /* Create transmit thread for this connection */
@@ -145,7 +146,7 @@ int32_t PIOS_UDP_Init(uint32_t *udp_id, const struct pios_udp_cfg *cfg)
 #endif
 
 
-    printf("udp dev %i - socket %i opened - result %i\n", pios_udp_num_devices - 1, udp_dev->socket, res);
+    printf("udp dev %i - socket %i opened on port %i - result %i\n", pios_udp_num_devices - 1, udp_dev->socket, udp_dev->cfg->port + pios_udp_port_offset, res);
 
     *udp_id = pios_udp_num_devices - 1;
 

@@ -69,11 +69,15 @@ uint32_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
 #define PIOS_COM_AUX_RX_BUF_LEN       512
 #define PIOS_COM_AUX_TX_BUF_LEN       512
 
+#define PIOS_COM_ROS_RX_BUF_LEN       512
+#define PIOS_COM_ROS_TX_BUF_LEN       2048
+
 uint32_t pios_com_aux_id       = 0;
 uint32_t pios_com_gps_id       = 0;
 uint32_t pios_com_telem_usb_id = 0;
 uint32_t pios_com_telem_rf_id  = 0;
 uint32_t pios_com_bridge_id    = 0;
+uint32_t pios_com_ros_id       = 0;
 
 uintptr_t pios_uavo_settings_fs_id;
 uintptr_t pios_user_fs_id;
@@ -202,6 +206,10 @@ void PIOS_Board_Init(void)
 
     case HWSETTINGS_RV_AUXPORT_COMAUX:
         PIOS_Board_configure_com(&pios_udp_aux_cfg, PIOS_COM_AUX_RX_BUF_LEN, PIOS_COM_AUX_TX_BUF_LEN, &pios_udp_com_driver, &pios_com_aux_id);
+        break;
+
+    case HWSETTINGS_RV_AUXPORT_ROSBRIDGE:
+        PIOS_Board_configure_com(&pios_udp_aux_cfg, PIOS_COM_ROS_RX_BUF_LEN, PIOS_COM_ROS_TX_BUF_LEN, &pios_udp_com_driver, &pios_com_ros_id);
         break;
     default:
         break;

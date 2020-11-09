@@ -83,6 +83,7 @@
 
 #define PIOS_INCLUDE_GPS
 #define PIOS_OVERO_SPI
+#define PIOS_INCLUDE_ROS_BRIDGE
 /* Supported receiver interfaces */
 #define PIOS_INCLUDE_RCVR
 #define PIOS_INCLUDE_DSM

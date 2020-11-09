@@ -129,9 +129,9 @@ struct ros_bridge {
 
 static bool module_enabled = false;
 static struct ros_bridge *ros;
-static int32_t uavoROSBridgeInitialize(void);
-static void uavoROSBridgeRxTask(void *parameters);
-static void uavoROSBridgeTxTask(void);
+int32_t UAVOROSBridgeInitialize(void);
+static void UAVOROSBridgeRxTask(void *parameters);
+static void UAVOROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
 static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler, vel_estimate_r_handler, actuators_handler, actuators_r_handler, fullstate_estimate_r_handler;
 static ROSBridgeSettingsData settings;
@@ -287,7 +287,7 @@ static uint32_t hwsettings_rosspeed_enum_to_baud(uint8_t baud)
  * Module start routine automatically called after initialization routine
  * @return 0 when was successful
  */
-static int32_t uavoROSBridgeStart(void)
+int32_t UAVOROSBridgeStart(void)
 {
     if (!module_enabled) {
         // give port to telemetry if it doesn't have one
@@ -326,7 +326,7 @@ static int32_t uavoROSBridgeStart(void)
 
     xTaskHandle taskHandle;
 
-    xTaskCreate(uavoROSBridgeRxTask, "uavoROSBridge", STACK_SIZE_BYTES / 4, NULL, TASK_PRIORITY, &taskHandle);
+    xTaskCreate(UAVOROSBridgeRxTask, "UAVOROSBridge", STACK_SIZE_BYTES / 4, NULL, TASK_PRIORITY, &taskHandle);
     PIOS_TASK_MONITOR_RegisterTask(TASKINFO_RUNNING_UAVOROSBRIDGE, taskHandle);
     PIOS_CALLBACKSCHEDULER_Dispatch(callbackHandle);
 
@@ -337,7 +337,7 @@ static int32_t uavoROSBridgeStart(void)
  * Module initialization routine
  * @return 0 when initialization was successful
  */
-static int32_t uavoROSBridgeInitialize(void)
+int32_t UAVOROSBridgeInitialize(void)
 {
     if (PIOS_COM_ROS) {
         ros = pios_malloc(sizeof(*ros));
@@ -357,7 +357,7 @@ static int32_t uavoROSBridgeInitialize(void)
             HwSettingsROSSpeedGet(&rosSpeed);
 
             PIOS_COM_ChangeBaud(PIOS_COM_ROS, hwsettings_rosspeed_enum_to_baud(rosSpeed));
-            callbackHandle = PIOS_CALLBACKSCHEDULER_Create(&uavoROSBridgeTxTask, CALLBACK_PRIORITY, CBTASK_PRIORITY, CALLBACKINFO_RUNNING_UAVOROSBRIDGE, STACK_SIZE_BYTES);
+            callbackHandle = PIOS_CALLBACKSCHEDULER_Create(&UAVOROSBridgeTxTask, CALLBACK_PRIORITY, CBTASK_PRIORITY, CALLBACKINFO_RUNNING_UAVOROSBRIDGE, STACK_SIZE_BYTES);
             AirspeedStateInitialize();
             VelocityStateInitialize();
             PositionStateInitialize();
@@ -387,7 +387,7 @@ static int32_t uavoROSBridgeInitialize(void)
 
     return -1;
 }
-MODULE_INITCALL(uavoROSBridgeInitialize, uavoROSBridgeStart);
+MODULE_INITCALL(UAVOROSBridgeInitialize, UAVOROSBridgeStart);
 
 /** various handlers **/
 static void ping_r_handler(struct ros_bridge *rb, rosbridgemessage_t *m)
@@ -780,7 +780,7 @@ static void actuators_handler(__attribute__((unused)) struct ros_bridge *rb, ros
  * Main task routine
  * @param[in] parameters parameter given by PIOS_Callback_Create()
  */
-static void uavoROSBridgeTxTask(void)
+static void UAVOROSBridgeTxTask(void)
 {
     uint8_t buffer[ROSBRIDGEMESSAGE_BUFFERSIZE]; // buffer on the stack? could also be in static RAM but not reuseale by other callbacks then
     rosbridgemessage_t *message = (rosbridgemessage_t *)buffer;
@@ -906,7 +906,7 @@ void SettingsCb(__attribute__((unused)) UAVObjEvent *ev)
  * Main task routine
  * @param[in] parameters parameter given by PIOS_Thread_Create()
  */
-static void uavoROSBridgeRxTask(__attribute__((unused)) void *parameters)
+static void UAVOROSBridgeRxTask(__attribute__((unused)) void *parameters)
 {
     while (1) {
         uint8_t b = 0;

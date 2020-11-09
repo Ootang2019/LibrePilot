@@ -48,6 +48,7 @@ MODULES += Airspeed
 MODULES += Actuator
 #MODULES += AltitudeHold # now integrated in Stabilization
 #MODULES += OveroSync
+MODULES += UAVOROSBridge
 
 SRC += $(FLIGHTLIB)/notification.c
 
@@ -130,6 +131,7 @@ SRC += $(PIOSCORECOMMON)/pios_callbackscheduler.c
 SRC += $(PIOSCORECOMMON)/pios_deltatime.c
 SRC += $(PIOSCORECOMMON)/pios_notify.c
 SRC += $(PIOSCORECOMMON)/pios_mem.c
+SRC += $(PIOSCORECOMMON)/pios_crc.c
 
 ## PIOS Hardware
 include $(PIOS)/posix/library.mk

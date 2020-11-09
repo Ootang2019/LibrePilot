@@ -39,6 +39,7 @@ extern "C" {
 #include <systemmod.h>
 }
 
+extern volatile uint16_t pios_udp_port_offset;
 /**
  * OpenPilot Main function:
  *
@@ -48,8 +49,16 @@ extern "C" {
  * If something goes wrong, blink LED1 and LED2 every 100ms
  *
  */
-int main()
+int main(int argc, char * *argv)
 {
+    /* UDP ports can be offset on commandline to spawn multiple instances on the same machine*/
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <Number>\nPorts start at 9000+Number*100\n", argv[0]);
+        exit(1);
+    } else {
+        pios_udp_port_offset = atoi(argv[1]) * 100;
+    }
+
     /* Brings up System using CMSIS functions, enables the LEDs. */
     PIOS_SYS_Init();
 

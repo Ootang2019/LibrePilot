@@ -1,11 +1,12 @@
 #!/usr/bin/env python2
 
+import math
 import rospy
 import socket
 from geometry_msgs.msg import PointStamped,TwistStamped
 from sensor_msgs.msg import Imu
 from std_msgs.msg import Float32
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion,quaternion_from_euler
 from uav_msgs.msg import uav_pose
 
 imutopic = ('GCSIMU',Imu)
@@ -72,10 +73,10 @@ def messageSender():
     msg.velocity.x = currentstate.velocity[0]
     msg.velocity.y = currentstate.velocity[1]
     msg.velocity.z = currentstate.velocity[2]
-    msg.orientation.w= currentstate.orientation.w
-    msg.orientation.x= currentstate.orientation.x
-    msg.orientation.y= -currentstate.orientation.y
-    msg.orientation.z= -currentstate.orientation.z
+    msg.orientation.x= currentstate.orientation[0]
+    msg.orientation.y= currentstate.orientation[1]
+    msg.orientation.z= currentstate.orientation[2]
+    msg.orientation.w= currentstate.orientation[3]
     msg.POI.x = currentstate.acceleration[0]
     msg.POI.y = currentstate.acceleration[1]
     msg.POI.z = currentstate.acceleration[2]
@@ -93,17 +94,19 @@ def ImuMessageSubscriber(msg):
     currentstate.acceleration[0]=msg.linear_acceleration.x
     currentstate.acceleration[1]=-msg.linear_acceleration.y
     currentstate.acceleration[2]=-msg.linear_acceleration.z
-    currentstate.orientation=msg.orientation
+    q0 = [msg.orientation.x,-msg.orientation.y,-msg.orientation.z,msg.orientation.w]
+    e0 = euler_from_quaternion(q0)
+    currentstate.orientation = quaternion_from_euler(e0[0],e0[1],e0[2]+(math.pi/2.0))
     messageSender()
 
 def VelMessageSubscriber(msg):
-    currentstate.velocity[0]=msg.twist.linear.x
-    currentstate.velocity[1]=-msg.twist.linear.y
+    currentstate.velocity[0]=msg.twist.linear.y
+    currentstate.velocity[1]=msg.twist.linear.x
     currentstate.velocity[2]=-msg.twist.linear.z
 
 def PosMessageSubscriber(msg):
-    currentstate.position[0]=msg.point.x
-    currentstate.position[1]=-msg.point.y
+    currentstate.position[0]=msg.point.y
+    currentstate.position[1]=msg.point.x
     currentstate.position[2]=-msg.point.z
 
 def AirspeedMessageSubscriber(msg):

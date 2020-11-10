@@ -69,8 +69,8 @@ uint32_t pios_rcvr_group_map[MANUALCONTROLSETTINGS_CHANNELGROUPS_NONE];
 #define PIOS_COM_AUX_RX_BUF_LEN       512
 #define PIOS_COM_AUX_TX_BUF_LEN       512
 
-#define PIOS_COM_ROS_RX_BUF_LEN       512
-#define PIOS_COM_ROS_TX_BUF_LEN       2048
+#define PIOS_COM_ROS_RX_BUF_LEN       4096
+#define PIOS_COM_ROS_TX_BUF_LEN       4096
 
 uint32_t pios_com_aux_id       = 0;
 uint32_t pios_com_gps_id       = 0;

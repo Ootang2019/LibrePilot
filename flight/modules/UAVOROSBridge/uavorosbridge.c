@@ -665,6 +665,7 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
     FlightStatusFlightModeOptions mode;
     FlightStatusArmedOptions armed;
     float thrust;
+    float airspeed;
     AccessoryDesiredData accessory;
     ManualControlCommandData manualcontrol;
 
@@ -675,6 +676,7 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
     PositionStateGet(&pos);
     VelocityStateGet(&vel);
     AttitudeStateGet(&att);
+    AirspeedStateCalibratedAirspeedGet(&airspeed);
     rosbridgemessage_fullstate_estimate_t *data = (rosbridgemessage_fullstate_estimate_t *)&(m->data);
     data->quaternion[0] = att.q1;
     data->quaternion[1] = att.q2;
@@ -699,6 +701,7 @@ static void fullstate_estimate_handler(__attribute__((unused)) struct ros_bridge
     data->controls[3]   = manualcontrol.Thrust;
     data->controls[4]   = manualcontrol.Collective;
     data->controls[5]   = manualcontrol.Throttle;
+    data->airspeed = airspeed;
     for (int t = 0; t < 4; t++) {
         if (AccessoryDesiredInstGet(t, &accessory) == 0) {
             data->accessory[t] = accessory.AccessoryVal;

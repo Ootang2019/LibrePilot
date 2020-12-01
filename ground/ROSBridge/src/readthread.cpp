@@ -282,6 +282,7 @@ public:
         uavpose.angVelocity.z = data->rotation[2];
         uavpose.thrust = data->thrust;
         uavpose.flightmode    = data->ROSControlled;
+        uavpose.POI.x = data->airspeed;
         for (int t = 0; t < 100; t++) {
             uavpose.covariance[t] = data->matrix[t];
         }

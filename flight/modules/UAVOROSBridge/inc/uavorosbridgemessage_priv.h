@@ -101,6 +101,7 @@ typedef struct {
     int32_t armed;
     float   controls[6];
     float   accessory[4];
+    float   airspeed;
     float   matrix[100];
 } rosbridgemessage_fullstate_estimate_t;
 

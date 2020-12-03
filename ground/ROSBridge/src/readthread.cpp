@@ -33,7 +33,7 @@
 
 #include "rosbridge.h"
 #include "std_msgs/String.h"
-#include "std_msgs/Float64MultiArray.h"
+#include "librepilot/LibrepilotActuators.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "nav_msgs/Odometry.h"
 #include "uav_msgs/uav_pose.h"
@@ -235,14 +235,18 @@ public:
     {
         rosbridgemessage_actuators_t *data = (rosbridgemessage_actuators_t *)message->data;
 
-        std_msgs::Float64MultiArray actuators;
+        librepilot::LibrepilotActuators actuators;
 
-        actuators.layout.dim.push_back(std_msgs::MultiArrayDimension());
-        actuators.layout.dim[0].size   = 12;
-        actuators.layout.dim[0].stride = 1;
-        actuators.layout.dim[0].label  = "Channel";
+        actuators.header.seq      = sequence++;
+        actuators.header.stamp    = ros::Time::now();
+        actuators.header.frame_id = "world";
+
+        actuators.data.layout.dim.push_back(std_msgs::MultiArrayDimension());
+        actuators.data.layout.dim[0].size   = 12;
+        actuators.data.layout.dim[0].stride = 1;
+        actuators.data.layout.dim[0].label  = "Channel";
         for (int t = 0; t < 12; t++) {
-            actuators.data.push_back((double)data->pwm[t]);
+            actuators.data.data.push_back((double)data->pwm[t]);
         }
         actuators_pub.publish(actuators);
     }
@@ -386,7 +390,7 @@ public:
         state4_pub    = nodehandle->advertise<librepilot::TransmitterInfo>(parent->getNameSpace() + "/TransmitterInfo", 10);
         imu_pub       = nodehandle->advertise<sensor_msgs::Imu>(parent->getNameSpace() + "/Imu", 10);
         gyro_bias_pub = nodehandle->advertise<librepilot::gyro_bias>(parent->getNameSpace() + "/gyrobias", 10);
-        actuators_pub = nodehandle->advertise<std_msgs::Float64MultiArray>(parent->getNameSpace() + "/actuators", 10);
+        actuators_pub = nodehandle->advertise<librepilot::LibrepilotActuators>(parent->getNameSpace() + "/actuators", 10);
         while (ros::ok()) {
             port->read(&c, 1);
             ros_receive_byte(c);

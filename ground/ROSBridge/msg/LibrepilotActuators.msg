@@ -1,2 +1,2 @@
 Header header
-float64[12] Channels
+std_msgs/Float64MultiArray data

@@ -59,6 +59,7 @@ msg
 FILES
 TransmitterInfo.msg
 gyro_bias.msg
+LibrepilotActuators.msg
 #LPStateEstimate.msg
 #LPPing.msg
 )

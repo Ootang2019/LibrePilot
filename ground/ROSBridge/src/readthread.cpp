@@ -34,6 +34,7 @@
 #include "rosbridge.h"
 #include "std_msgs/String.h"
 #include "librepilot/LibrepilotActuators.h"
+#include "librepilot/AutopilotInfo.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "nav_msgs/Odometry.h"
 #include "uav_msgs/uav_pose.h"
@@ -57,7 +58,7 @@ public:
     uint8_t rx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
     size_t rx_length;
     rosbridge *parent;
-    ros::Publisher state_pub, state2_pub, uavpose_corrected_pub, uavpose_pub, state4_pub, imu_pub, gyro_bias_pub, actuators_pub;
+    ros::Publisher state_pub, state2_pub, uavpose_corrected_pub, uavpose_pub, state4_pub, imu_pub, gyro_bias_pub, actuators_pub, autopilot_info_pub;
     uint32_t sequence;
     uint32_t imusequence;
 
@@ -166,6 +167,9 @@ public:
             case ROSBRIDGEMESSAGE_ACTUATORS:
                 actuators_handler(message);
                 break;
+            case ROSBRIDGEMESSAGE_AUTOPILOT_INFO:
+                autopilot_info_handler(message);
+                break;
             default:
             {
                 std_msgs::String msg;
@@ -251,6 +255,45 @@ public:
         actuators_pub.publish(actuators);
     }
 
+    void autopilot_info_handler(rosbridgemessage_t *message)
+    {
+        rosbridgemessage_autopilot_info_t *data = (rosbridgemessage_autopilot_info_t *)message->data;
+
+        librepilot::AutopilotInfo autopilot;
+
+        autopilot.header.seq          = sequence++;
+        autopilot.header.stamp        = ros::Time::now();
+        autopilot.header.frame_id     = "world";
+
+        autopilot.status = data->status;
+        autopilot.fractional_progress = data->fractional_progress;
+        autopilot.error = data->error;
+        autopilot.pathDirection.x     = data->pathDirection[0];
+        autopilot.pathDirection.y     = data->pathDirection[1];
+        autopilot.pathDirection.z     = data->pathDirection[2];
+        autopilot.pathCorrection.x    = data->pathCorrection[0];
+        autopilot.pathCorrection.y    = data->pathCorrection[1];
+        autopilot.pathCorrection.z    = data->pathCorrection[2];
+        autopilot.pathTime = data->pathTime;
+        autopilot.Mode = data->Mode;
+        autopilot.ModeParameters[0]   = data->ModeParameters[0];
+        autopilot.ModeParameters[1]   = data->ModeParameters[1];
+        autopilot.ModeParameters[2]   = data->ModeParameters[2];
+        autopilot.ModeParameters[3]   = data->ModeParameters[3];
+        autopilot.Start.x = data->Start[0];
+        autopilot.Start.y = data->Start[1];
+        autopilot.Start.z = data->Start[2];
+        autopilot.End.x   = data->End[0];
+        autopilot.End.y   = data->End[1];
+        autopilot.End.z   = data->End[2];
+        autopilot.StartingVelocity  = data->StartingVelocity;
+        autopilot.EndingVelocity    = data->EndingVelocity;
+        autopilot.VelocityDesired.x = data->VelocityDesired[0];
+        autopilot.VelocityDesired.y = data->VelocityDesired[1];
+        autopilot.VelocityDesired.z = data->VelocityDesired[2];
+
+        autopilot_info_pub.publish(autopilot);
+    }
 
     void fullstate_estimate_handler(rosbridgemessage_t *message)
     {
@@ -391,6 +434,7 @@ public:
         imu_pub       = nodehandle->advertise<sensor_msgs::Imu>(parent->getNameSpace() + "/Imu", 10);
         gyro_bias_pub = nodehandle->advertise<librepilot::gyro_bias>(parent->getNameSpace() + "/gyrobias", 10);
         actuators_pub = nodehandle->advertise<librepilot::LibrepilotActuators>(parent->getNameSpace() + "/actuators", 10);
+        autopilot_info_pub = nodehandle->advertise<librepilot::AutopilotInfo>(parent->getNameSpace() + "/AutopilotInfo", 10);
         while (ros::ok()) {
             port->read(&c, 1);
             ros_receive_byte(c);

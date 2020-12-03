@@ -58,6 +58,7 @@ DIRECTORY
 msg
 FILES
 TransmitterInfo.msg
+AutopilotInfo.msg
 gyro_bias.msg
 LibrepilotActuators.msg
 #LPStateEstimate.msg

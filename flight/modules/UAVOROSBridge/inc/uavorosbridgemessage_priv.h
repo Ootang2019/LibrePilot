@@ -46,6 +46,7 @@ typedef enum {
     ROSBRIDGEMESSAGE_GIMBAL_ESTIMATE,
     ROSBRIDGEMESSAGE_VEL_ESTIMATE,
     ROSBRIDGEMESSAGE_ACTUATORS,
+    ROSBRIDGEMESSAGE_AUTOPILOT_INFO,
     ROSBRIDGEMESSAGE_END_ARRAY_SIZE,
 } rosbridgemessagetype_t;
 
@@ -125,6 +126,22 @@ typedef struct {
     int16_t pwm[12];
 } rosbridgemessage_actuators_t;
 
+typedef struct {
+    int32_t status;
+    float   fractional_progress;
+    float   error;
+    float   pathDirection[3];
+    float   pathCorrection[3];
+    float   pathTime;
+    int32_t Mode;
+    float   ModeParameters[4];
+    float   Start[3];
+    float   End[3];
+    float   StartingVelocity;
+    float   EndingVelocity;
+    float   VelocityDesired[3];
+} rosbridgemessage_autopilot_info_t;
+
 static const size_t ROSBRIDGEMESSAGE_SIZES[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     sizeof(rosbridgemessage_pingpong_t),
     sizeof(rosbridgemessage_pos_estimate_t),
@@ -137,6 +154,7 @@ static const size_t ROSBRIDGEMESSAGE_SIZES[ROSBRIDGEMESSAGE_END_ARRAY_SIZE] = {
     sizeof(rosbridgemessage_gimbal_estimate_t),
     sizeof(rosbridgemessage_vel_estimate_t),
     sizeof(rosbridgemessage_actuators_t),
+    sizeof(rosbridgemessage_autopilot_info_t),
 };
 
 #define ROSBRIDGEMESSAGE_BUFFERSIZE (offsetof(rosbridgemessage_t, data) + sizeof(rosbridgemessage_fullstate_estimate_t) + 2)

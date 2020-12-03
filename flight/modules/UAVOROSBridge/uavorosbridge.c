@@ -72,11 +72,13 @@
 #include "auxpositionsensor.h"
 #include "auxvelocitysensor.h"
 #include "pathdesired.h"
+#include "pathstatus.h"
 #include "poilocation.h"
 #include "flightmodesettings.h"
 #include "flightstatus.h"
 #include "positionstate.h"
 #include "velocitystate.h"
+#include "velocitydesired.h"
 #include "attitudestate.h"
 #include "gyrostate.h"
 #include "gyrosensor.h"
@@ -84,7 +86,6 @@
 #include "accelsensor.h"
 #include "rosbridgesettings.h"
 #include "rosbridgestatus.h"
-#include "objectpersistence.h"
 
 #include "pios_sensors.h"
 
@@ -105,6 +106,7 @@ struct ros_bridge {
     int32_t       pingTimer;
     int32_t       stateTimer;
     int32_t       biasTimer;
+    int32_t       autopilotTimer;
     int32_t       rateTimer;
     float         gyrRef[3];
     float         gyrBias[3];
@@ -133,7 +135,7 @@ int32_t UAVOROSBridgeInitialize(void);
 static void UAVOROSBridgeRxTask(void *parameters);
 static void UAVOROSBridgeTxTask(void);
 static DelayedCallbackInfo *callbackHandle;
-static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler, vel_estimate_r_handler, actuators_handler, actuators_r_handler, fullstate_estimate_r_handler;
+static rosbridgemessage_handler ping_handler, ping_r_handler, pong_handler, pong_r_handler, fullstate_estimate_handler, imu_average_handler, gyro_bias_handler, gimbal_estimate_handler, flightcontrol_r_handler, pos_estimate_r_handler, vel_estimate_r_handler, actuators_handler, actuators_r_handler, fullstate_estimate_r_handler, autopilot_info_handler;
 static ROSBridgeSettingsData settings;
 void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev);
 void SettingsCb(__attribute__((unused)) UAVObjEvent *ev);
@@ -155,7 +157,8 @@ static rosbridgemessage_handler *const rosbridgemessagehandlers[ROSBRIDGEMESSAGE
     gyro_bias_handler,
     gimbal_estimate_handler,
     NULL,
-    actuators_handler
+    actuators_handler,
+    autopilot_info_handler
 };
 
 
@@ -300,18 +303,19 @@ int32_t UAVOROSBridgeStart(void)
     }
 
     PIOS_DELTATIME_Init(&ros->roundtrip, 1e-3f, 1e-6f, 10.0f, 1e-1f);
-    ros->pingTimer  = 0;
-    ros->stateTimer = 0;
-    ros->biasTimer  = 0;
-    ros->rateTimer  = 0;
-    ros->gyrTimer   = 0;
-    ros->accTimer   = 0;
-    ros->gyrRef[0]  = 0;
-    ros->gyrRef[1]  = 0;
-    ros->gyrRef[2]  = 0;
-    ros->gyrBias[0] = 0;
-    ros->gyrBias[1] = 0;
-    ros->gyrBias[2] = 0;
+    ros->pingTimer            = 0;
+    ros->stateTimer           = 0;
+    ros->biasTimer            = 0;
+    ros->autopilotTimer       = 0;
+    ros->rateTimer            = 0;
+    ros->gyrTimer = 0;
+    ros->accTimer = 0;
+    ros->gyrRef[0]            = 0;
+    ros->gyrRef[1]            = 0;
+    ros->gyrRef[2]            = 0;
+    ros->gyrBias[0]           = 0;
+    ros->gyrBias[1]           = 0;
+    ros->gyrBias[2]           = 0;
     ros->rateAccumulator[0]   = 0;
     ros->rateAccumulator[1]   = 0;
     ros->rateAccumulator[2]   = 0;
@@ -321,8 +325,8 @@ int32_t UAVOROSBridgeStart(void)
     ros->rawAccAccumulator[0] = 0;
     ros->rawAccAccumulator[1] = 0;
     ros->rawAccAccumulator[2] = 0;
-    ros->rx_length = 0;
-    ros->myPingSequence = 0x66;
+    ros->rx_length            = 0;
+    ros->myPingSequence       = 0x66;
 
     xTaskHandle taskHandle;
 
@@ -372,6 +376,8 @@ int32_t UAVOROSBridgeInitialize(void)
             AccelSensorConnectCallback(&RawAccCb);
             FlightStatusInitialize();
             PathDesiredInitialize();
+            PathStatusInitialize();
+            VelocityDesiredInitialize();
             PoiLocationInitialize();
             ActuatorDesiredInitialize();
             ActuatorCommandInitialize();
@@ -779,6 +785,45 @@ static void actuators_handler(__attribute__((unused)) struct ros_bridge *rb, ros
     ActuatorCommandChannelGet(&(data->pwm[0]));
 }
 
+static void autopilot_info_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
+{
+    rosbridgemessage_autopilot_info_t *data = (rosbridgemessage_autopilot_info_t *)&(m->data);
+
+    PathStatusData pathStatus;
+    PathDesiredData pathDesired;
+    VelocityDesiredData velocityDesired;
+
+    PathStatusGet(&pathStatus);
+    PathDesiredGet(&pathDesired);
+    VelocityDesiredGet(&velocityDesired);
+    data->status = pathStatus.Status;
+    data->fractional_progress = pathStatus.fractional_progress;
+    data->error  = pathStatus.error;
+    data->pathDirection[0]  = pathStatus.path_direction_north;
+    data->pathDirection[1]  = pathStatus.path_direction_east;
+    data->pathDirection[2]  = pathStatus.path_direction_down;
+    data->pathCorrection[0] = pathStatus.correction_direction_north;
+    data->pathCorrection[1] = pathStatus.correction_direction_east;
+    data->pathCorrection[2] = pathStatus.correction_direction_down;
+    data->pathTime = pathStatus.path_time;
+    data->Mode = pathDesired.Mode;
+    data->ModeParameters[0] = pathDesired.ModeParameters[0];
+    data->ModeParameters[1] = pathDesired.ModeParameters[1];
+    data->ModeParameters[2] = pathDesired.ModeParameters[2];
+    data->ModeParameters[3] = pathDesired.ModeParameters[3];
+    data->Start[0] = pathDesired.Start.North;
+    data->Start[1] = pathDesired.Start.East;
+    data->Start[2] = pathDesired.Start.Down;
+    data->End[0]   = pathDesired.End.North;
+    data->End[1]   = pathDesired.End.East;
+    data->End[2]   = pathDesired.End.Down;
+    data->StartingVelocity   = pathDesired.StartingVelocity;
+    data->EndingVelocity     = pathDesired.EndingVelocity;
+    data->VelocityDesired[0] = velocityDesired.North;
+    data->VelocityDesired[1] = velocityDesired.East;
+    data->VelocityDesired[2] = velocityDesired.Down;
+}
+
 /**
  * Main task routine
  * @param[in] parameters parameter given by PIOS_Callback_Create()
@@ -886,6 +931,11 @@ void AttitudeCb(__attribute__((unused)) UAVObjEvent *ev)
         dispatch = true;
         ros->scheduled[ROSBRIDGEMESSAGE_FULLSTATE_ESTIMATE] = true;
         ros->scheduled[ROSBRIDGEMESSAGE_ACTUATORS] = true;
+    }
+    if (++ros->autopilotTimer >= settings.UpdateRate.Autopilot && settings.UpdateRate.Autopilot > 0) {
+        ros->autopilotTimer = 0;
+        dispatch = true;
+        ros->scheduled[ROSBRIDGEMESSAGE_AUTOPILOT_INFO] = true;
     }
     if (++ros->biasTimer >= settings.UpdateRate.Bias && settings.UpdateRate.Bias > 0) {
         ros->biasTimer = 0;

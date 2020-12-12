@@ -33,9 +33,9 @@
 
 #include "rosbridge.h"
 #include "std_msgs/String.h"
+#include "librepilot/LibrepilotActuators.h"
 #include "geometry_msgs/Vector3Stamped.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
-#include "std_msgs/Float64MultiArray.h"
 #include "uav_msgs/uav_pose.h"
 #include <sstream>
 #include "boost/thread.hpp"
@@ -99,14 +99,14 @@ public:
         parent->rosinfoPrint("received velocity, sending");
     }
 
-    void actuatorCallback(const std_msgs::Float64MultiArray::ConstPtr & msg)
+    void actuatorCallback(const librepilot::LibrepilotActuators::ConstPtr & msg)
     {
         uint8_t tx_buffer[ROSBRIDGEMESSAGE_BUFFERSIZE];
         rosbridgemessage_t *message = (rosbridgemessage_t *)tx_buffer;
         rosbridgemessage_actuators_t *payload = (rosbridgemessage_actuators_t *)message->data;
 
-        for (int t = 0; t < msg->data.size() and t < 12; t++) {
-            payload->pwm[t] = (uint16_t)(msg->data[t]);
+        for (int t = 0; t < msg->data.data.size() and t < 12; t++) {
+            payload->pwm[t] = (uint16_t)(msg->data.data[t]);
         }
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_ACTUATORS;

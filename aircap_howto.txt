@@ -10,7 +10,7 @@ This is a firmware component which allows realtime exchange of Flight Controller
 This is a small tcp server component which allows remote UAVTalk telemetry connections via TCPIP to a flight controller connected via USB. It also logs telemetry raw dumps to disk in the format expected by the Librepilot GCS software. It is not integrated/compiled with the main makefile yet.
 
 
-/ground/ROSBridge:
+/ROS/ROSBridge:
 This is a ROS package that allows integration of a LibrePilot into Robot Operating System. Link this directory into your catkin workspace src folder. The node is called librepilot_node. To run it expects the virtual COM port created by the flight controller on a Linux machine.
 
 

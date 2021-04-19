@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 import rospy
 import socket
@@ -41,7 +41,7 @@ def NetworkHandler(values):
 
 while True:
     data,sender = UDPSocket.recvfrom(4096)
-    values = [ float(v.strip()) for v in data.split(',')]
+    values = [ float(v.strip()) for v in data.decode('ascii').split(',')]
     NetworkHandler(values)
 
 

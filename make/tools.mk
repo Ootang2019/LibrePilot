@@ -99,8 +99,8 @@ OSGEARTH_VERSION := 2.8
 ifeq ($(UNAME), Linux)
     ifeq ($(ARCH), x86_64)
         QT_SDK_ARCH    := gcc_64
-        QT_SDK_URL     := http://download.qt.io/official_releases/qt/$(QT_SHORT_VERSION)/$(QT_VERSION)/qt-opensource-linux-x64-$(QT_VERSION).run
-        QT_SDK_MD5_URL := http://download.qt.io/official_releases/qt/$(QT_SHORT_VERSION)/$(QT_VERSION)/md5sums.txt
+        QT_SDK_URL     := http://download.qt.io/archive/qt/$(QT_SHORT_VERSION)/$(QT_VERSION)/qt-opensource-linux-x64-$(QT_VERSION).run
+        QT_SDK_MD5_URL := http://download.qt.io/archive/qt/$(QT_SHORT_VERSION)/$(QT_VERSION)/md5sums.txt
         OSG_URL        := $(TOOLS_URL)/osg-$(OSG_VERSION)-linux-x64.tar.gz
         OSGEARTH_URL   := $(TOOLS_URL)/osgearth-$(OSGEARTH_VERSION)-linux-x64.tar.gz
     else

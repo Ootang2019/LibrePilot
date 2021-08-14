@@ -518,7 +518,7 @@ static void handleBaro(float sample, float temperature)
 
     float altitude = 44330.0f * (1.0f - powf((sample) / PIOS_CONST_MKS_STD_ATMOSPHERE_F, (1.0f / 5.255f)));
 
-    if (!isnan(altitude)) {
+    if (IS_REAL(altitude)) {
         BaroSensorData data;
         data.Altitude    = altitude;
         data.Temperature = temperature;
@@ -530,7 +530,7 @@ static void handleBaro(float sample, float temperature)
 
 static void updateAccelTempBias(float temperature)
 {
-    if (isnan(accel_temperature)) {
+    if (!IS_REAL(accel_temperature)) {
         accel_temperature = temperature;
     }
     accel_temperature = temp_alpha_gyro_accel * (temperature - accel_temperature) + accel_temperature;
@@ -552,7 +552,7 @@ static void updateAccelTempBias(float temperature)
 
 static void updateGyroTempBias(float temperature)
 {
-    if (isnan(gyro_temperature)) {
+    if (!IS_REAL(gyro_temperature)) {
         gyro_temperature = temperature;
     }
 
@@ -573,7 +573,7 @@ static void updateGyroTempBias(float temperature)
 
 static void updateBaroTempBias(float temperature)
 {
-    if (isnan(baro_temperature)) {
+    if (!IS_REAL(baro_temperature)) {
         baro_temperature = temperature;
     }
 

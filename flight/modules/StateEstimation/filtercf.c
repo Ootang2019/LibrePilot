@@ -535,7 +535,7 @@ static filterResult complementaryFilter(struct data *this, float gyro[3], float 
 
     // If quaternion has become inappropriately short or is nan reinit.
     // THIS SHOULD NEVER ACTUALLY HAPPEN
-    if ((fabsf(inv_qmag) > 1e3f) || isnan(inv_qmag)) {
+    if ((fabsf(inv_qmag) > 1e3f) || !IS_REAL(inv_qmag)) {
         this->first_run = 1;
         return FILTERRESULT_WARNING;
     }

@@ -481,7 +481,7 @@ static filterResult filter(stateFilter *self, stateEstimation *state)
 // check for invalid variance values
 static inline bool invalid_var(float data)
 {
-    if (isnan(data) || isinf(data)) {
+    if (!IS_REAL(data)) {
         return true;
     }
     if (data < 1e-15f) { // var should not be close to zero. And not negative either.

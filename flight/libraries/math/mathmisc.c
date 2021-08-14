@@ -29,6 +29,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#include <pios_math.h>
 #include <mathmisc.h>
 
 void pseudo_windowed_variance_init(pw_variance_t *variance, int32_t window_size)

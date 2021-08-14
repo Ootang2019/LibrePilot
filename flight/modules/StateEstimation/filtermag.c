@@ -282,9 +282,9 @@ void magOffsetEstimation(struct data *this, float mag[3])
     delta[1] = -rate * (xy[1] / xy_norm * Rxy - xy[1]);
     delta[2] = -rate * (Rz - B_e[2]);
 
-    if (!isnan(delta[0]) && !isinf(delta[0]) &&
-        !isnan(delta[1]) && !isinf(delta[1]) &&
-        !isnan(delta[2]) && !isinf(delta[2])) {
+    if (IS_REAL(delta[0]) &&
+        IS_REAL(delta[1]) &&
+        IS_REAL(delta[2])) {
         this->magBias[0] += delta[0];
         this->magBias[1] += delta[1];
         this->magBias[2] += delta[2];

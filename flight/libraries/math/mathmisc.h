@@ -107,7 +107,7 @@ static inline void vector_normalizef(float *vector, const uint8_t dim)
 {
     float length = vector_lengthf(vector, dim);
 
-    if (length <= 0.0f || isnan(length)) {
+    if (length <= 0.0f || !IS_REAL(length)) {
         return;
     }
     for (int t = 0; t < dim; t++) {

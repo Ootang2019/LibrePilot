@@ -538,7 +538,7 @@ static int32_t updateSensorsCC3D(AccelStateData *accelStateData, GyroStateData *
     accels[2] *= accel_scale.Z * invcount;
     temp *= invcount;
 
-    if (isnan(temperature)) {
+    if (!IS_REAL(temperature)) {
         temperature = temp;
     }
     temperature = temp_alpha * (temp - temperature) + temperature;
@@ -740,7 +740,7 @@ __attribute__((optimize("O3"))) static void updateAttitude(AccelStateData *accel
 
     // If quaternion has become inappropriately short or is nan reinit.
     // THIS SHOULD NEVER ACTUALLY HAPPEN
-    if ((fabsf(inv_qmag) > 1e3f) || isnan(inv_qmag)) {
+    if ((fabsf(inv_qmag) > 1e3f) || !IS_REAL(inv_qmag)) {
         q[0] = 1;
         q[1] = 0;
         q[2] = 0;

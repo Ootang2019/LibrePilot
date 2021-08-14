@@ -435,6 +435,39 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
     if (mode != FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
         return;
     }
+
+    // safety
+    if (!IS_REAL(data->control[0])) {
+        return;
+    }
+    if (!IS_REAL(data->control[1])) {
+        return;
+    }
+    if (!IS_REAL(data->control[2])) {
+        return;
+    }
+    if (!IS_REAL(data->control[3])) {
+        return;
+    }
+    if (!IS_REAL(data->vel[0])) {
+        return;
+    }
+    if (!IS_REAL(data->vel[1])) {
+        return;
+    }
+    if (!IS_REAL(data->vel[2])) {
+        return;
+    }
+    if (!IS_REAL(data->poi[0])) {
+        return;
+    }
+    if (!IS_REAL(data->poi[1])) {
+        return;
+    }
+    if (!IS_REAL(data->poi[2])) {
+        return;
+    }
+
     PathDesiredData pathDesired;
     PathDesiredGet(&pathDesired);
     switch (data->mode) {
@@ -535,6 +568,7 @@ static void actuators_r_handler(__attribute__((unused)) struct ros_bridge *rb, r
     if (mode != FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
         return;
     }
+
     rosbridgemessage_actuators_t *data = (rosbridgemessage_actuators_t *)&(m->data);
     ActuatorOverrideChannelSet(&(data->pwm[0]));
     ActuatorDesiredUpdated(); // manually trigger faux update on actuatordesired - this will trigger Actuator module to process early and drive the outputs ASAP
@@ -564,6 +598,59 @@ static void fullstate_estimate_r_handler(__attribute__((unused)) struct ros_brid
     }
 
     rosbridgemessage_fullstate_estimate_t *data = (rosbridgemessage_fullstate_estimate_t *)&(m->data);
+
+    // safety
+    if (!IS_REAL(data->quaternion[0])) {
+        return;
+    }
+    if (!IS_REAL(data->quaternion[1])) {
+        return;
+    }
+    if (!IS_REAL(data->quaternion[2])) {
+        return;
+    }
+    if (!IS_REAL(data->quaternion[3])) {
+        return;
+    }
+    if (!IS_REAL(data->rotation[0])) {
+        return;
+    }
+    if (!IS_REAL(data->rotation[1])) {
+        return;
+    }
+    if (!IS_REAL(data->rotation[2])) {
+        return;
+    }
+    if (!IS_REAL(data->accessory[0])) {
+        return;
+    }
+    if (!IS_REAL(data->accessory[1])) {
+        return;
+    }
+    if (!IS_REAL(data->accessory[2])) {
+        return;
+    }
+    if (!IS_REAL(data->accessory[3])) {
+        return;
+    }
+    if (!IS_REAL(data->position[0])) {
+        return;
+    }
+    if (!IS_REAL(data->position[1])) {
+        return;
+    }
+    if (!IS_REAL(data->position[2])) {
+        return;
+    }
+    if (!IS_REAL(data->velocity[0])) {
+        return;
+    }
+    if (!IS_REAL(data->velocity[1])) {
+        return;
+    }
+    if (!IS_REAL(data->velocity[2])) {
+        return;
+    }
 
     // attitude
     {
@@ -636,6 +723,18 @@ static void fullstate_estimate_r_handler(__attribute__((unused)) struct ros_brid
 static void pos_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
 {
     rosbridgemessage_pos_estimate_t *data = (rosbridgemessage_pos_estimate_t *)&(m->data);
+
+    // safety
+    if (!IS_REAL(data->position[0])) {
+        return;
+    }
+    if (!IS_REAL(data->position[1])) {
+        return;
+    }
+    if (!IS_REAL(data->position[2])) {
+        return;
+    }
+
     AUXPositionSensorData pos;
 
     pos.North = data->position[0];
@@ -647,6 +746,18 @@ static void pos_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb
 static void vel_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
 {
     rosbridgemessage_vel_estimate_t *data = (rosbridgemessage_vel_estimate_t *)&(m->data);
+
+    // safety
+    if (!IS_REAL(data->velocity[0])) {
+        return;
+    }
+    if (!IS_REAL(data->velocity[1])) {
+        return;
+    }
+    if (!IS_REAL(data->velocity[2])) {
+        return;
+    }
+
     AUXVelocitySensorData vel;
 
     vel.North = data->velocity[0];

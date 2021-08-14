@@ -466,7 +466,7 @@ fw_dist: fw_dist_tar_gz
 #
 ##############################
 
-UNCRUSTIFY_TARGETS := flight ground
+UNCRUSTIFY_TARGETS := flight ground ROS
 
 # $(1) = Uncrustify target (e.g flight or ground)
 # $(2) = Target root directory

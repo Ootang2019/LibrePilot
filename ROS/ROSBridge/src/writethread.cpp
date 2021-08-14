@@ -159,8 +159,14 @@ public:
         rosbridgemessage_flightcontrol_t *payload = (rosbridgemessage_flightcontrol_t *)message->data;
 
         offset3d offset = parent->getOffset();
+        uint8_t mode    = msg->flightmode;
 
-        if (msg->flightmode != ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS) {
+        if (mode > ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS) {
+            mode = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
+        }
+        switch (mode) {
+        case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT:
+        case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_VECTOR:
             payload->control[0] = msg->position.x - offset.x;
             payload->control[1] = msg->position.y - offset.y;
             payload->control[2] = msg->position.z - offset.z;
@@ -168,11 +174,8 @@ public:
             payload->vel[0]     = msg->velocity.x;
             payload->vel[1]     = msg->velocity.y;
             payload->vel[2]     = msg->velocity.z;
-            payload->poi[0]     = msg->POI.x - offset.x;
-            payload->poi[1]     = msg->POI.y - offset.y;
-            payload->poi[2]     = msg->POI.z - offset.z;
-            payload->mode = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
-        } else {
+            break;
+        case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS:
             payload->control[0] = 0;
             payload->control[1] = 0;
             payload->control[2] = 0;
@@ -180,11 +183,18 @@ public:
             payload->vel[0]     = 0;
             payload->vel[1]     = 0;
             payload->vel[2]     = 0;
-            payload->poi[0]     = msg->POI.x - offset.x;
-            payload->poi[1]     = msg->POI.y - offset.y;
-            payload->poi[2]     = msg->POI.z - offset.z;
-            payload->mode = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS;
+            break;
+        case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ATTITUDE:
+            payload->control[0] = msg->velocity.x;
+            payload->control[1] = msg->velocity.y;
+            payload->control[2] = msg->velocity.z;
+            payload->control[3] = msg->thrust;
+            break;
         }
+        payload->poi[0]    = msg->POI.x - offset.x;
+        payload->poi[1]    = msg->POI.y - offset.y;
+        payload->poi[2]    = msg->POI.z - offset.z;
+        payload->mode      = mode;
         message->magic     = ROSBRIDGEMAGIC;
         message->type      = ROSBRIDGEMESSAGE_FLIGHTCONTROL;
         message->length    = ROSBRIDGEMESSAGE_SIZES[message->type];

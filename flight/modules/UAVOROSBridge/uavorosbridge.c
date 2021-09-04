@@ -524,6 +524,7 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
             pathDesired.Start.Down       = curpos.Down;
             pathDesired.StartingVelocity = 1.0f;
             pathDesired.EndingVelocity   = 0.0f;
+            pathDesired.Mode = PATHDESIRED_MODE_GOTOENDPOINT;
         } else {
             pathDesired.Start.North      = data->control[0];
             pathDesired.Start.East       = data->control[1];
@@ -533,8 +534,45 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
             pathDesired.End.Down         = data->control[2] + data->vel[2];
             pathDesired.StartingVelocity = VectorMagnitude(data->vel);
             pathDesired.EndingVelocity   = pathDesired.StartingVelocity;
+            pathDesired.Mode = PATHDESIRED_MODE_FOLLOWVECTOR;
         }
-        pathDesired.Mode = PATHDESIRED_MODE_FOLLOWVECTOR;
+    }
+    break;
+    case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ROSCONTROL:
+    {
+        FlightModeSettingsPositionHoldOffsetData offset;
+        FlightModeSettingsPositionHoldOffsetGet(&offset);
+        PositionStateData curpos;
+        PositionStateGet(&curpos);
+        if (
+            curpos.North < settings.GeoFenceBoxMin.North || curpos.North > settings.GeoFenceBoxMax.North ||
+            curpos.East < settings.GeoFenceBoxMin.East || curpos.East > settings.GeoFenceBoxMax.East ||
+            curpos.Down < settings.GeoFenceBoxMin.Down || curpos.Down > settings.GeoFenceBoxMax.Down) {
+            // outside of safebox, fly back to safebox
+            pathDesired.End.North        = (settings.GeoFenceBoxMin.North + settings.GeoFenceBoxMax.North) / 2.0f;
+            pathDesired.End.East         = (settings.GeoFenceBoxMin.East + settings.GeoFenceBoxMax.East) / 2.0f;
+            pathDesired.End.Down         = (settings.GeoFenceBoxMin.Down + settings.GeoFenceBoxMax.Down) / 2.0f;
+            pathDesired.Start.North      = curpos.North;
+            pathDesired.Start.East       = curpos.East;
+            pathDesired.Start.Down       = curpos.Down;
+            pathDesired.StartingVelocity = 1.0f;
+            pathDesired.EndingVelocity   = 0.0f;
+            pathDesired.Mode = PATHDESIRED_MODE_GOTOENDPOINT;
+        } else {
+            pathDesired.ModeParameters[0] = data->control[0];
+            pathDesired.ModeParameters[1] = data->control[1];
+            pathDesired.ModeParameters[2] = data->control[2];
+            pathDesired.ModeParameters[3] = data->control[3];
+            pathDesired.Start.North      = 0.0f,
+            pathDesired.Start.East       = 0.0f,
+            pathDesired.Start.Down       = 0.0f,
+            pathDesired.End.North        = data->vel[0],
+            pathDesired.End.East         = data->vel[1],
+            pathDesired.End.Down         = data->vel[2],
+            pathDesired.StartingVelocity = 0.0f;
+            pathDesired.EndingVelocity   = data->vel[3];
+            pathDesired.Mode = PATHDESIRED_MODE_ROSCONTROL;
+        }
     }
     break;
     case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ATTITUDE:

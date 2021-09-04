@@ -100,6 +100,7 @@ extern "C" {
 #include "fixedwinglandcontroller.h"
 #include "grounddrivecontroller.h"
 #include "airshipflycontroller.h"
+#include "airshiproscontroller.h"
 
 // Private constants
 
@@ -326,6 +327,10 @@ static void pathFollowerSetActiveController(void)
             case PATHDESIRED_MODE_CIRCLERIGHT:
             case PATHDESIRED_MODE_CIRCLELEFT:
                 activeController = AirshipFlyController::instance();
+                activeController->Activate();
+                break;
+            case PATHDESIRED_MODE_ROSCONTROL:
+                activeController = AirshipROSController::instance();
                 activeController->Activate();
                 break;
             default:

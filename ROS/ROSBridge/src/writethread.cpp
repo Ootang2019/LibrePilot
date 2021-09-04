@@ -175,6 +175,15 @@ public:
             payload->vel[1]     = msg->velocity.y;
             payload->vel[2]     = msg->velocity.z;
             break;
+        case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ROSCONTROL:
+            payload->control[0] = msg->velocity.x;
+            payload->control[1] = msg->velocity.y;
+            payload->control[2] = msg->velocity.z;
+            payload->control[3] = msg->thrust;
+            payload->vel[0]     = msg->angVelocity.x;
+            payload->vel[1]     = msg->angVelocity.y;
+            payload->vel[2]     = msg->angVelocity.z;
+            break;
         case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS:
             payload->control[0] = 0;
             payload->control[1] = 0;

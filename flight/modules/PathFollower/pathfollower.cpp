@@ -235,6 +235,7 @@ void pathFollowerInitializeControllersForFrameType()
     case FRAME_TYPE_AIRSHIP:
         if (!airship_initialised) {
             AirshipFlyController::instance()->Initialize(&airshipPathFollowerSettings);
+            AirshipROSController::instance()->Initialize(&airshipPathFollowerSettings);
             airship_initialised = 1;
         }
         break;

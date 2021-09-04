@@ -161,7 +161,7 @@ public:
         offset3d offset = parent->getOffset();
         uint8_t mode    = msg->flightmode;
 
-        if (mode > ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ACTUATORS) {
+        if (mode >= ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_NUMELEM) {
             mode = ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT;
         }
         switch (mode) {

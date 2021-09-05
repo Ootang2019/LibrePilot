@@ -487,7 +487,15 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
         pathDesired.StartingVelocity = 0.0f;
         pathDesired.EndingVelocity   = 0.0f;
         pathDesired.Mode = PATHDESIRED_MODE_GOTOENDPOINT;
-        commandOverridePermitted     = true;
+        if (
+            curpos.North < settings.GeoFenceBoxMin.North || curpos.North > settings.GeoFenceBoxMax.North ||
+            curpos.East < settings.GeoFenceBoxMin.East || curpos.East > settings.GeoFenceBoxMax.East ||
+            curpos.Down < settings.GeoFenceBoxMin.Down || curpos.Down > settings.GeoFenceBoxMax.Down) {
+            // if outside of safebox, disallow command overriding - this is also set to false by canary.
+            commandOverridePermitted = false;
+        } else {
+            commandOverridePermitted = true;
+        }
     }
     break;
     case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_WAYPOINT:
@@ -577,11 +585,29 @@ static void flightcontrol_r_handler(__attribute__((unused)) struct ros_bridge *r
     break;
     case ROSBRIDGEMESSAGE_FLIGHTCONTROL_MODE_ATTITUDE:
     {
-        pathDesired.ModeParameters[0] = data->control[0];
-        pathDesired.ModeParameters[1] = data->control[1];
-        pathDesired.ModeParameters[2] = data->control[2];
-        pathDesired.ModeParameters[3] = data->control[3];
-        pathDesired.Mode = PATHDESIRED_MODE_FIXEDATTITUDE;
+        PositionStateData curpos;
+        PositionStateGet(&curpos);
+        if (
+            curpos.North < settings.GeoFenceBoxMin.North || curpos.North > settings.GeoFenceBoxMax.North ||
+            curpos.East < settings.GeoFenceBoxMin.East || curpos.East > settings.GeoFenceBoxMax.East ||
+            curpos.Down < settings.GeoFenceBoxMin.Down || curpos.Down > settings.GeoFenceBoxMax.Down) {
+            // outside of safebox, fly back to safebox
+            pathDesired.End.North        = (settings.GeoFenceBoxMin.North + settings.GeoFenceBoxMax.North) / 2.0f;
+            pathDesired.End.East         = (settings.GeoFenceBoxMin.East + settings.GeoFenceBoxMax.East) / 2.0f;
+            pathDesired.End.Down         = (settings.GeoFenceBoxMin.Down + settings.GeoFenceBoxMax.Down) / 2.0f;
+            pathDesired.Start.North      = curpos.North;
+            pathDesired.Start.East       = curpos.East;
+            pathDesired.Start.Down       = curpos.Down;
+            pathDesired.StartingVelocity = 1.0f;
+            pathDesired.EndingVelocity   = 0.0f;
+            pathDesired.Mode = PATHDESIRED_MODE_GOTOENDPOINT;
+        } else {
+            pathDesired.ModeParameters[0] = data->control[0];
+            pathDesired.ModeParameters[1] = data->control[1];
+            pathDesired.ModeParameters[2] = data->control[2];
+            pathDesired.ModeParameters[3] = data->control[3];
+            pathDesired.Mode = PATHDESIRED_MODE_FIXEDATTITUDE;
+        }
     }
     break;
     }
@@ -1008,7 +1034,34 @@ static void UAVOROSBridgeTxTask(void)
             return;
         }
     }
-    // nothing scheduled, do a ping in 10 secods time
+    // canari: If in ROS mode and outside of skybox, maybe we haven't received any commands in too long
+    // this prevents a flyaway as a last resort
+    FlightStatusFlightModeOptions mode;
+    FlightStatusFlightModeGet(&mode);
+    if (mode == FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
+        PositionStateData curpos;
+        PositionStateGet(&curpos);
+        if (
+            curpos.North < settings.GeoFenceBoxMin.North || curpos.North > settings.GeoFenceBoxMax.North ||
+            curpos.East < settings.GeoFenceBoxMin.East || curpos.East > settings.GeoFenceBoxMax.East ||
+            curpos.Down < settings.GeoFenceBoxMin.Down || curpos.Down > settings.GeoFenceBoxMax.Down) {
+            // outside of safebox, fly back to safebox
+            PathDesiredData pathDesired;
+            PathDesiredGet(&pathDesired);
+            pathDesired.End.North        = (settings.GeoFenceBoxMin.North + settings.GeoFenceBoxMax.North) / 2.0f;
+            pathDesired.End.East         = (settings.GeoFenceBoxMin.East + settings.GeoFenceBoxMax.East) / 2.0f;
+            pathDesired.End.Down         = (settings.GeoFenceBoxMin.Down + settings.GeoFenceBoxMax.Down) / 2.0f;
+            pathDesired.Start.North      = curpos.North;
+            pathDesired.Start.East       = curpos.East;
+            pathDesired.Start.Down       = curpos.Down;
+            pathDesired.StartingVelocity = 1.0f;
+            pathDesired.EndingVelocity   = 0.0f;
+            pathDesired.Mode = PATHDESIRED_MODE_GOTOENDPOINT;
+            commandOverridePermitted     = false;
+        }
+    }
+
+    // nothing scheduled, rescheduling will be done by Event Callbacks
 }
 
 /**

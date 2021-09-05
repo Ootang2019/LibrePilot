@@ -505,6 +505,7 @@ static void airspeedStateUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
     FixedWingFlyController::instance()->AirspeedStateUpdatedCb(ev);
     FixedWingAutoTakeoffController::instance()->AirspeedStateUpdatedCb(ev);
     AirshipFlyController::instance()->AirspeedStateUpdatedCb(ev);
+    AirshipROSController::instance()->AirspeedStateUpdatedCb(ev);
 }
 
 

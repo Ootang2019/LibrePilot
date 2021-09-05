@@ -1058,6 +1058,7 @@ static void UAVOROSBridgeTxTask(void)
             pathDesired.EndingVelocity   = 0.0f;
             pathDesired.Mode = PATHDESIRED_MODE_GOTOENDPOINT;
             commandOverridePermitted     = false;
+            PathDesiredSet(&pathDesired);
         }
     }
 

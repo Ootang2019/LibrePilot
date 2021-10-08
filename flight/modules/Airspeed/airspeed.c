@@ -43,6 +43,7 @@
 #include "airspeedsensor.h" // object that will be updated by the module
 #include "baro_airspeed_ms4525do.h"
 #include "baro_airspeed_etasv3.h"
+#include "baro_airspeed_sdp3x.h"
 #include "baro_airspeed_mpxv.h"
 #include "imu_airspeed.h"
 #include "airspeedalarm.h"
@@ -184,6 +185,12 @@ static void airspeedTask(__attribute__((unused)) void *parameters)
         case AIRSPEEDSETTINGS_AIRSPEEDSENSORTYPE_EAGLETREEAIRSPEEDV3:
             // Eagletree Airspeed v3
             baro_airspeedGetETASV3(&airspeedData, &airspeedSettings);
+            break;
+#endif
+#if defined(PIOS_INCLUDE_SDP3X)
+        case AIRSPEEDSETTINGS_AIRSPEEDSENSORTYPE_SDP3X:
+            // SDP3X
+            baro_airspeedGetSDP3X(&airspeedData, &airspeedSettings);
             break;
 #endif
 #if defined(PIOS_INCLUDE_MS4525DO)

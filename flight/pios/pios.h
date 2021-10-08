@@ -199,6 +199,11 @@ extern "C" {
 #include <pios_etasv3.h>
 #endif
 
+#ifdef PIOS_INCLUDE_SDP3X
+/* SDP3X Airspeed MicroSensor*/
+#include <pios_sdp3x.h>
+#endif
+
 #ifdef PIOS_INCLUDE_MS4525DO
 /* PixHawk Airspeed Sensor based on MS4525DO */
 #include <pios_ms4525do.h>

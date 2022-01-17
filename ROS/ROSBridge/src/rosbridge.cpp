@@ -75,7 +75,7 @@ public:
             boost::this_thread::sleep(boost::posix_time::seconds(10));
             if (this->canary == 0) {
                 fprintf(stderr, "CRITICAL TIMEOUT FAILURE! BAILING OUT!");
-                exit(1);
+                //exit(1); ## YuTang
             }
         }
     }

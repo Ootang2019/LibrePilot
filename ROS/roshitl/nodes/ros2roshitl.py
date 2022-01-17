@@ -9,6 +9,8 @@ from std_msgs.msg import Float32
 from tf.transformations import euler_from_quaternion,quaternion_from_euler
 from uav_msgs.msg import uav_pose
 
+throttle=0
+
 imutopic = ('GCSIMU',Imu)
 postopic = ('GCSPOS',PointStamped)
 veltopic = ('GCSVEL',TwistStamped)
@@ -52,6 +54,7 @@ class State():
 
 currentstate = State()
 M_PI=3.1415926535897932
+
 
 def messageSender():
     #rotation[x,y,z]
@@ -97,7 +100,13 @@ def ImuMessageSubscriber(msg):
     q0 = [msg.orientation.x,-msg.orientation.y,-msg.orientation.z,msg.orientation.w]
     e0 = euler_from_quaternion(q0)
     currentstate.orientation = quaternion_from_euler(e0[0],e0[1],e0[2]+(math.pi/2.0))
-    messageSender()
+    
+    global throttle
+    throttle+=1
+    if throttle % 4 == 0: # YuTang: reduce Imu msg overflow on UDP for hitl
+    	messageSender()
+    	throttle=0
+    
 
 def VelMessageSubscriber(msg):
     currentstate.velocity[0]=msg.twist.linear.y

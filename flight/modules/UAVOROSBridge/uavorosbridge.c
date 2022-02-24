@@ -647,15 +647,9 @@ static void actuators_r_handler(__attribute__((unused)) struct ros_bridge *rb, r
 
 static void fullstate_estimate_r_handler(__attribute__((unused)) struct ros_bridge *rb, rosbridgemessage_t *m)
 {
-    // only allow override of actutors if the craft is in ROS controlled mode
-    FlightStatusFlightModeOptions mode;
-
-    FlightStatusFlightModeGet(&mode);
-    if (mode != FLIGHTSTATUS_FLIGHTMODE_ROSCONTROLLED) {
-        return;
-    }
     // only allow override if no other sensor fusion is taking place
     RevoSettingsFusionAlgorithmOptions fusion;
+
     RevoSettingsFusionAlgorithmGet(&fusion);
     if (fusion != REVOSETTINGS_FUSIONALGORITHM_NONE) {
         return;

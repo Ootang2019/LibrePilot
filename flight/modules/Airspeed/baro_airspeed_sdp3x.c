@@ -71,6 +71,8 @@ void baro_airspeedGetSDP3X(AirspeedSensorData *airspeedSensor, AirspeedSettingsD
         airspeedSensor->SensorConnected    = AIRSPEEDSENSOR_SENSORCONNECTED_FALSE;
         airspeedSensor->CalibratedAirspeed = 0;
         AirspeedAlarm(SYSTEMALARMS_ALARM_ERROR);
+        // At boot time, sensor needs time for self calibration during which it may not be disturbed. Wait 2 seconds before next attempt
+        vTaskDelay(2000 / portTICK_RATE_MS);
         return;
     }
 
